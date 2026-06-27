@@ -1,0 +1,331 @@
+Build a complete, production-ready Arabic e-commerce web application called "كنوز" (Knouz) for the Egyptian market. This is a full-stack project. Do not use placeholders or TODOs — generate all code fully working from the start.
+
+---
+
+TECH STACK
+
+- Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS
+- Database: PostgreSQL using Prisma ORM (use Replit's built-in PostgreSQL)
+- Auth: NextAuth.js with credentials provider (email + password)
+- Image storage: Cloudinary (use environment variables for keys)
+- Payment: Paymob API (Egyptian payment gateway)
+- Email: Nodemailer with Gmail SMTP
+- State: Zustand for cart and wishlist
+- Validation: Zod for all API inputs
+
+---
+
+BRAND IDENTITY
+
+- Brand name: كنوز (Knouz)
+- Language: Arabic only, RTL layout (add dir="rtl" to html tag)
+- Font: Cairo from Google Fonts
+- Colors:
+  - Primary (Gold): #C9A84C
+  - Secondary (Burgundy): #6B1F2A
+  - Background: #FAF5EB
+  - Text: #1A1A1A
+- All user-facing text must be in Arabic
+- Tailwind config must include these brand colors as custom tokens
+
+---
+
+PRODUCT CATEGORIES
+
+1. مجوهرات وإكسسوارات
+2. العناية بالبشرة
+3. أدوات المطبخ
+
+---
+
+DATABASE — Create this full Prisma schema
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  role      Role     @default(CUSTOMER)
+  orders    Order[]
+  reviews   Review[]
+  wishlist  Wishlist[]
+  addresses Address[]
+  createdAt DateTime @default(now())
+}
+
+enum Role { CUSTOMER ADMIN }
+
+model Category {
+  id       String    @id @default(cuid())
+  nameAr   String
+  slug     String    @unique
+  image    String?
+  products Product[]
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  nameAr        String
+  descriptionAr String
+  price         Float
+  comparePrice  Float?
+  stock         Int         @default(0)
+  images        String[]
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id])
+  featured      Boolean     @default(false)
+  reviews       Review[]
+  orderItems    OrderItem[]
+  wishlist      Wishlist[]
+  createdAt     DateTime    @default(now())
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  status          OrderStatus @default(PENDING)
+  total           Float
+  shippingAddress Json
+  paymentMethod   String
+  paymentStatus   String      @default("unpaid")
+  couponCode      String?
+  discount        Float       @default(0)
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+}
+
+enum OrderStatus { PENDING PROCESSING SHIPPED DELIVERED CANCELLED }
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id         String      @id @default(cuid())
+  code       String      @unique
+  discount   Float
+  type       CouponType
+  minOrder   Float       @default(0)
+  expiresAt  DateTime?
+  usageLimit Int?
+  usedCount  Int         @default(0)
+}
+
+enum CouponType { PERCENTAGE FIXED }
+
+model Wishlist {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Address {
+  id          String  @id @default(cuid())
+  userId      String
+  user        User    @relation(fields: [userId], references: [id])
+  name        String
+  phone       String
+  governorate String
+  city        String
+  street      String
+  isDefault   Boolean @default(false)
+}
+
+---
+
+PAGES — Build all of these completely
+
+1. / — Homepage
+   - Full-width hero banner with brand colors, Arabic headline, CTA button "تسوقي الآن"
+   - Category cards grid (3 categories with icons)
+   - Featured products section (grid of ProductCard components)
+   - Trust badges row: شحن سريع | دفع آمن | إرجاع مجاني خلال 14 يوم
+   - Testimonials section with star ratings
+
+2. /shop — Products listing page
+   - Sidebar filters: category, price range slider, rating
+   - Sort dropdown: الأحدث | الأعلى مبيعاً | السعر: من الأقل | السعر: من الأعلى
+   - Responsive product grid
+   - Pagination
+
+3. /product/[slug] — Product detail page
+   - Image gallery with thumbnail strip and zoom
+   - Product name, price, comparePrice with strikethrough
+   - Stock indicator
+   - Add to cart button with quantity selector
+   - Wishlist toggle (heart icon)
+   - Tabs: الوصف | التقييمات
+   - Related products horizontal scroll
+
+4. /cart — Cart page
+   - Item list with image, name, price, quantity +/- controls, remove button
+   - Coupon code input with validation against DB
+   - Order summary: subtotal, discount, shipping, total
+   - زر "إتمام الطلب"
+
+5. /checkout — Multi-step checkout
+   - Step 1: Shipping — name, phone, governorate dropdown (all 27 Egyptian governorates), city, street
+   - Step 2: Payment — Card via Paymob, Fawry, Mobile Wallet
+   - Step 3: Confirmation — order number, summary, "شكراً لطلبك" message
+   - Send confirmation email via Nodemailer after order is placed
+
+6. /track — Order tracking
+   - Input: order number + phone number
+   - Show order status with progress steps (قيد المعالجة ← تم الشحن ← تم التسليم)
+
+7. /login and /register — Auth pages with NextAuth credentials provider
+
+8. /account — Protected page showing order history and saved addresses
+
+9. /admin — Admin dashboard (role: ADMIN only, redirect others)
+   - /admin — Stats cards: total revenue, total orders, total customers, low stock count. Bar chart of sales by month using Recharts
+   - /admin/products — Table of all products, Add/Edit/Delete with image upload to Cloudinary
+   - /admin/orders — Orders table, filter by status, click to update status
+   - /admin/coupons — Create and list discount codes
+
+---
+
+API ROUTES — Build all of these
+
+POST   /api/auth/[...nextauth]     — NextAuth handler
+GET    /api/products               — List products (with filters: category, minPrice, maxPrice, sort, page)
+POST   /api/products               — Create product (admin only)
+PUT    /api/products/[id]          — Update product (admin only)
+DELETE /api/products/[id]          — Delete product (admin only)
+GET    /api/products/[slug]        — Single product by slug
+GET    /api/categories             — List categories
+POST   /api/orders                 — Create order, send confirmation email
+GET    /api/orders                 — List orders (admin) or user orders (customer)
+PUT    /api/orders/[id]            — Update order status (admin)
+GET    /api/orders/track           — Track order by orderNumber + phone
+POST   /api/coupons/validate       — Validate coupon code, return discount
+POST   /api/upload                 — Upload image to Cloudinary, return URL
+GET    /api/admin/stats            — Dashboard stats (admin only)
+
+---
+
+COMPONENTS — Build all of these
+
+Layout:
+- Header: logo "كنوز" in gold, nav links, search icon, wishlist icon, cart icon with item count badge, login/account icon. Sticky on scroll.
+- Footer: brand name, social links (Facebook, Instagram, WhatsApp), category links, trust badges
+- MobileBottomNav: fixed bottom bar with icons for الرئيسية | المتجر | السلة | حسابي (visible on mobile only)
+- WhatsAppFAB: floating WhatsApp button bottom-left
+
+Product:
+- ProductCard: image, name, price/comparePrice, rating stars, add to cart button, wishlist heart
+- ProductGrid: responsive grid wrapper
+- ProductGallery: main image + thumbnails with click to switch
+- ReviewCard and ReviewForm (with star rating input)
+
+Cart:
+- CartDrawer: slide-in drawer from right showing cart items, subtotal, checkout button
+- CartItem: image, name, price, quantity controls, remove
+
+Checkout:
+- StepIndicator: shows current checkout step
+- AddressForm: with Egyptian governorates list
+- PaymentForm: Paymob integration
+
+Admin:
+- AdminSidebar: navigation for admin sections
+- StatsCard: icon + metric + label
+- DataTable: reusable sortable table
+- ImageUpload: drag and drop with preview, uploads to Cloudinary
+
+---
+
+ZUSTAND STORES
+
+cart.ts:
+- State: items[], total, itemCount
+- Actions: addItem, removeItem, updateQuantity, clearCart, applyCoupon
+- Persist to localStorage
+
+wishlist.ts:
+- State: productIds[]
+- Actions: toggle, isInWishlist
+- Persist to localStorage
+
+---
+
+PAYMOB INTEGRATION
+
+In /lib/paymob.ts:
+- authenticatePaymob() — POST to Paymob auth endpoint, return auth_token
+- createOrder(authToken, amountCents) — return order_id
+- getPaymentKey(authToken, orderId, amountCents, billingData, integrationId) — return payment_key
+- In /api/payment/paymob/route.ts: full flow to generate iframe URL and return to frontend
+- In /api/payment/callback/route.ts: handle Paymob HMAC webhook, update order paymentStatus
+
+---
+
+ENVIRONMENT VARIABLES — Create .env.example with all of these
+
+DATABASE_URL=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+PAYMOB_API_KEY=
+PAYMOB_INTEGRATION_ID_CARD=
+PAYMOB_INTEGRATION_ID_FAWRY=
+PAYMOB_HMAC_SECRET=
+GMAIL_USER=
+GMAIL_PASSWORD=
+NEXT_PUBLIC_SITE_URL=
+
+---
+
+SEED DATA — Create prisma/seed.ts with
+
+- 1 admin user: email admin@knouz.com, password Admin123!
+- 3 categories (مجوهرات وإكسسوارات, العناية بالبشرة, أدوات المطبخ)
+- 12 sample products (4 per category) with Arabic names, descriptions, prices in EGP, placeholder Cloudinary URLs
+
+---
+
+STYLING RULES
+
+- All layouts RTL: add dir="rtl" to <html>, use Tailwind RTL plugin or manually mirror spacing (pr- instead of pl-, etc.)
+- Mobile-first responsive design
+- Use brand gold #C9A84C for primary buttons, links, and accents
+- Use burgundy #6B1F2A for headers and hover states
+- Cream #FAF5EB as page background
+- Smooth hover transitions on all interactive elements
+- Loading skeletons on all data-fetching components
+- Toast notifications (react-hot-toast) for cart actions, errors, success
+
+---
+
+FINAL INSTRUCTIONS
+
+1. Initialize the Next.js project with TypeScript and Tailwind
+2. Set up Prisma with the PostgreSQL connection from Replit secrets
+3. Run prisma migrate dev and prisma db seed
+4. Build all pages, components, and API routes as specified above
+5. Make sure the project runs with a single "npm run dev" command
+6. All Arabic text must be correct Modern Standard Arabic or Egyptian colloquial where appropriate
+7. Do not leave any feature half-implemented — every button, form, and page must be fully functional
