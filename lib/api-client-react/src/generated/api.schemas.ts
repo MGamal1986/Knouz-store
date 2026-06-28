@@ -240,13 +240,45 @@ export interface UploadResult {
   publicId?: string | null;
 }
 
+export interface LowStockProduct {
+  id: string;
+  nameAr: string;
+  stock: number;
+}
+
 export interface AdminStats {
   totalRevenue: number;
   totalOrders: number;
   totalCustomers: number;
   lowStockCount: number;
   pendingOrders: number;
+  todayOrders?: number;
+  totalProducts?: number;
   recentOrders: Order[];
+  lowStockProducts?: LowStockProduct[];
+}
+
+export interface AdminCustomer {
+  userId: string;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  orderCount: number;
+  totalSpend: number;
+  /** @nullable */
+  createdAt?: string | null;
+}
+
+export interface AdminCustomerList {
+  customers: AdminCustomer[];
+  total: number;
+  page: number;
+}
+
+export interface CategorySales {
+  name: string;
+  value: number;
 }
 
 export interface MonthlySales {
@@ -299,6 +331,15 @@ userId?: string;
 export type TrackOrderParams = {
 orderNumber: string;
 phone: string;
+};
+
+export type ListAdminCustomersParams = {
+search?: string;
+page?: number;
+};
+
+export type ExportOrdersParams = {
+status?: string;
 };
 
 export type GetWishlistParams = {

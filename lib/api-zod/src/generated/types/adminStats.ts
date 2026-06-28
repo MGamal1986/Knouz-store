@@ -5,6 +5,7 @@
  * Knouz Arabic E-Commerce API
  * OpenAPI spec version: 0.1.0
  */
+import type { LowStockProduct } from './lowStockProduct';
 import type { Order } from './order';
 
 export interface AdminStats {
@@ -13,5 +14,8 @@ export interface AdminStats {
   totalCustomers: number;
   lowStockCount: number;
   pendingOrders: number;
+  todayOrders?: number;
+  totalProducts?: number;
   recentOrders: Order[];
+  lowStockProducts?: LowStockProduct[];
 }

@@ -1,0 +1,328 @@
+Add a complete, fully functional Admin Dashboard to the existing كنوز (Knouz) Next.js e-commerce project. The dashboard must be production-ready, Arabic RTL, and accessible only to users with role ADMIN. Do not use placeholders — all features must be fully working.
+
+---
+
+ROUTE STRUCTURE
+
+All admin pages live under /admin. Protect every route with middleware:
+- Check NextAuth session server-side on every /admin/* route
+- If no session or role !== ADMIN, redirect to /login
+- Create middleware.ts at project root to enforce this
+
+---
+
+LAYOUT
+
+Create app/admin/layout.tsx with:
+- Fixed sidebar on desktop (width 260px), slide-in drawer on mobile
+- Top header bar with: page title, admin name, logout button, notification bell
+- Main content area with padding and scroll
+- Sidebar navigation links:
+  - لوحة التحكم → /admin
+  - المنتجات → /admin/products
+  - الطلبات → /admin/orders
+  - العملاء → /admin/customers
+  - الكوبونات → /admin/coupons
+  - الفئات → /admin/categories
+  - الإعدادات → /admin/settings
+- Active link highlighted in gold #C9A84C
+- Brand logo "كنوز" at top of sidebar
+- RTL layout throughout (dir="rtl")
+
+---
+
+PAGE 1: لوحة التحكم — /admin
+
+Stats cards row (fetch from /api/admin/stats):
+- إجمالي الإيرادات — sum of all delivered order totals in EGP
+- إجمالي الطلبات — total order count
+- طلبات اليوم — orders created today
+- العملاء النشطين — users with role CUSTOMER
+- المنتجات — total product count
+- منتجات منخفضة المخزون — products where stock < 5 (shown in red badge)
+
+Charts section (use Recharts):
+- Bar chart: المبيعات الشهرية — revenue per month for the last 6 months
+- Pie chart: المبيعات حسب الفئة — revenue breakdown by category
+- Line chart: الطلبات اليومية — order count per day for last 30 days
+
+Recent orders table (last 10 orders):
+- Columns: رقم الطلب | العميل | المبلغ | الحالة | التاريخ
+- Status shown as colored badge (قيد المعالجة=yellow, تم الشحن=blue, تم التسليم=green, ملغي=red)
+- "عرض الكل" link to /admin/orders
+
+Low stock alert list:
+- Show all products where stock < 5
+- Product name, current stock, link to edit
+
+---
+
+PAGE 2: إدارة المنتجات — /admin/products
+
+Products table with columns:
+- صورة (thumbnail 50x50)
+- اسم المنتج
+- الفئة
+- السعر (EGP)
+- المخزون (red if < 5)
+- مميز (featured toggle switch — updates DB instantly via PATCH)
+- الإجراءات: edit button, delete button
+
+Features:
+- Search bar: filter products by name in real time
+- Filter by category dropdown
+- Sort by: الأحدث | السعر | المخزون
+- Pagination (10 per page)
+- "إضافة منتج" button opens modal (not a new page)
+
+Add/Edit Product Modal:
+- Fields:
+  - اسم المنتج (Arabic) — required
+  - الوصف (Arabic) — textarea, required
+  - الفئة — dropdown from DB categories
+  - السعر — number input in EGP, required
+  - سعر المقارنة — number input (shows strikethrough on storefront)
+  - المخزون — number input, required
+  - مميز — toggle switch
+  - الصور — drag and drop image uploader
+    - Accept multiple images
+    - Show preview thumbnails with delete X button
+    - On submit, upload each image to Cloudinary via /api/upload
+    - Store returned URLs in images[] array
+- Submit buttons: حفظ المنتج | إلغاء
+- On success: close modal, refresh table, show toast "تم حفظ المنتج بنجاح"
+
+Delete Product:
+- Show confirmation dialog: "هل أنت متأكد من حذف هذا المنتج؟"
+- On confirm: DELETE /api/products/[id], refresh table, toast "تم حذف المنتج"
+
+API routes needed:
+- GET /api/admin/products — list with pagination, search, filter, sort
+- POST /api/products — create new product
+- PUT /api/products/[id] — update product
+- PATCH /api/products/[id] — toggle featured only
+- DELETE /api/products/[id] — delete product
+
+---
+
+PAGE 3: إدارة الطلبات — /admin/orders
+
+Orders table with columns:
+- رقم الطلب
+- العميل (name + phone)
+- المحافظة
+- المبلغ الإجمالي (EGP)
+- طريقة الدفع
+- حالة الدفع (مدفوع / غير مدفوع)
+- حالة الطلب (colored badge)
+- تاريخ الطلب
+- الإجراءات: عرض | تعديل الحالة
+
+Features:
+- Filter tabs at top: الكل | قيد المعالجة | تم الشحن | تم التسليم | ملغي
+- Search by order number or customer phone
+- Date range filter (from / to)
+- Export to CSV button — exports filtered results as orders.csv
+
+Order Detail Drawer (slide in from right on "عرض"):
+- Order number, date, status badge
+- Customer info: name, phone, full address
+- Items table: product image, name, quantity, unit price, subtotal
+- Coupon applied (if any) + discount amount
+- Shipping cost + total
+- Payment method and status
+- Status update dropdown with "حفظ الحالة" button
+  - On save: PATCH /api/orders/[id], update DB, show toast, send status update email to customer
+
+Status Update Email (Nodemailer):
+- When status changes to "تم الشحن": send email with tracking info placeholder
+- When status changes to "تم التسليم": send thank you email with review request
+
+API routes needed:
+- GET /api/admin/orders — list with filters, search, pagination
+- GET /api/admin/orders/[id] — full order detail
+- PATCH /api/admin/orders/[id] — update status
+- GET /api/admin/orders/export — return CSV stream
+
+---
+
+PAGE 4: إدارة العملاء — /admin/customers
+
+Customers table:
+- الاسم | البريد الإلكتروني | رقم الهاتف | عدد الطلبات | إجمالي الإنفاق | تاريخ التسجيل
+- Search by name or email
+- Click row to expand: show customer's order history inline
+- No delete — only view
+
+API routes needed:
+- GET /api/admin/customers — list with order count and total spend aggregated via Prisma
+
+---
+
+PAGE 5: الكوبونات والخصومات — /admin/coupons
+
+Coupons table:
+- الكود | نوع الخصم | قيمة الخصم | الحد الأدنى للطلب | تاريخ الانتهاء | عدد الاستخدامات | الحالة (نشط/منتهي)
+- "إنشاء كوبون" button opens modal
+
+Create Coupon Modal:
+- Fields:
+  - كود الخصم — text input + "توليد تلقائي" button that generates random 8-char code
+  - نوع الخصم — radio: نسبة مئوية % | مبلغ ثابت جنيه
+  - قيمة الخصم — number input
+  - الحد الأدنى للطلب — number input (optional)
+  - تاريخ الانتهاء — date picker (optional)
+  - حد الاستخدام — number input (optional, leave empty for unlimited)
+- Submit: POST /api/admin/coupons
+- Delete coupon with confirmation dialog
+
+API routes needed:
+- GET /api/admin/coupons
+- POST /api/admin/coupons
+- DELETE /api/admin/coupons/[id]
+
+---
+
+PAGE 6: إدارة الفئات — /admin/categories
+
+Categories table:
+- الصورة (thumbnail) | اسم الفئة | عدد المنتجات | الإجراءات
+
+Add/Edit Category Modal:
+- اسم الفئة (Arabic) — text input
+- الصورة — single image upload to Cloudinary
+- Submit: POST or PUT /api/admin/categories
+
+Delete: only if category has 0 products, otherwise show error toast "لا يمكن حذف فئة تحتوي على منتجات"
+
+API routes needed:
+- GET /api/admin/categories
+- POST /api/admin/categories
+- PUT /api/admin/categories/[id]
+- DELETE /api/admin/categories/[id]
+
+---
+
+PAGE 7: الإعدادات — /admin/settings
+
+Sections:
+
+1. إعدادات المتجر
+   - اسم المتجر
+   - وصف المتجر
+   - رقم واتساب للتواصل
+   - رابط صفحة فيسبوك
+   - رابط انستجرام
+
+2. إعدادات الشحن
+   - سعر الشحن الافتراضي (EGP)
+   - حد الشحن المجاني (الطلبات فوق X جنيه = شحن مجاني)
+   - شحن مجاني toggle
+
+3. تغيير كلمة المرور
+   - كلمة المرور الحالية
+   - كلمة المرور الجديدة
+   - تأكيد كلمة المرور الجديدة
+
+Save each section independently with its own "حفظ" button and success toast.
+
+Store settings in a Settings table in DB:
+model Settings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
+
+API routes needed:
+- GET /api/admin/settings
+- PUT /api/admin/settings
+
+---
+
+REUSABLE ADMIN COMPONENTS
+
+Build these in components/admin/:
+
+AdminLayout.tsx — sidebar + header shell
+StatsCard.tsx — icon, value, label, optional trend arrow (up/down vs last month)
+DataTable.tsx — generic sortable table with pagination, search slot, action slot
+StatusBadge.tsx — colored pill for order status
+ImageUpload.tsx — drag and drop, multiple files, preview grid, Cloudinary upload
+ConfirmDialog.tsx — modal with confirm/cancel for destructive actions
+AdminModal.tsx — reusable modal wrapper with title, close button, scrollable body
+ExportButton.tsx — triggers CSV download from API
+
+---
+
+MIDDLEWARE
+
+Create middleware.ts at root:
+
+import { getToken } from "next-auth/jwt"
+import { NextResponse } from "next/server"
+
+export async function middleware(req) {
+  const token = await getToken({ req })
+  const isAdminRoute = req.nextUrl.pathname.startsWith("/admin")
+
+  if (isAdminRoute) {
+    if (!token) return NextResponse.redirect(new URL("/login", req.url))
+    if (token.role !== "ADMIN") return NextResponse.redirect(new URL("/", req.url))
+  }
+  return NextResponse.next()
+}
+
+export const config = { matcher: ["/admin/:path*"] }
+
+Make sure the JWT token includes the user role — update the NextAuth callbacks in /api/auth/[...nextauth] to include role in both jwt() and session() callbacks.
+
+---
+
+NOTIFICATIONS SYSTEM
+
+Add a notification bell in the admin header:
+- Badge count showing unread notifications
+- Dropdown list of recent events:
+  - "طلب جديد #1234 — 450 جنيه" (triggered when new order created)
+  - "مخزون منخفض: [اسم المنتج] — 3 قطع فقط" (triggered when stock < 5 after order)
+- Store notifications in DB:
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+- GET /api/admin/notifications — return unread notifications
+- PATCH /api/admin/notifications/read — mark all as read
+
+---
+
+STYLING RULES FOR ADMIN
+
+- Background: #F8F9FA (light gray, not cream — easier to read tables)
+- Sidebar background: #1A1A1A (dark)
+- Sidebar text: white, active link gold #C9A84C
+- Header: white with bottom border
+- Cards: white background, subtle shadow, rounded-xl
+- Tables: white background, hover row highlight in #FAF5EB
+- Primary action buttons: gold #C9A84C with dark text
+- Destructive buttons: red #DC2626
+- All text and layout RTL
+- Responsive: sidebar collapses to hamburger menu on mobile
+
+---
+
+FINAL INSTRUCTIONS
+
+1. Build the middleware first to protect all /admin routes
+2. Build the AdminLayout with sidebar and header
+3. Build each page in order: Dashboard → Products → Orders → Customers → Coupons → Categories → Settings
+4. Build all API routes with proper Zod validation and admin role checks on every endpoint
+5. All Arabic text must be correct and natural
+6. Every form must have loading state on submit button
+7. Every data table must have empty state (لا توجد نتائج) when no data
+8. Use react-hot-toast for all success and error notifications
+9. The dashboard must work end-to-end: creating a product in admin must immediately appear on the storefront

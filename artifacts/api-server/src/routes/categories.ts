@@ -40,4 +40,43 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nameAr, slug, image } = req.body;
+    const updates: Record<string, unknown> = {};
+    if (nameAr !== undefined) updates.nameAr = nameAr;
+    if (slug !== undefined) updates.slug = slug;
+    if (image !== undefined) updates.image = image;
+    const [category] = await db.update(categoriesTable).set(updates).where(eq(categoriesTable.id, id)).returning();
+    if (!category) {
+      res.status(404).json({ error: "Category not found" });
+      return;
+    }
+    res.json(category);
+  } catch (err) {
+    req.log.error({ err }, "Failed to update category");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [productCheck] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productsTable)
+      .where(eq(productsTable.categoryId, id));
+    if ((productCheck?.count ?? 0) > 0) {
+      res.status(400).json({ error: "لا يمكن حذف فئة تحتوي على منتجات" });
+      return;
+    }
+    await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete category");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

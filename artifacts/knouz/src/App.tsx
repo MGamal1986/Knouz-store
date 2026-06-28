@@ -36,19 +36,27 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 function Router() {
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={HomePage} />
-        <Route path="/shop" component={ShopPage} />
-        <Route path="/product/:id" component={ProductPage} />
-        <Route path="/cart" component={CartPage} />
-        <Route path="/checkout" component={CheckoutPage} />
-        <Route path="/track" component={TrackPage} />
-        <Route path="/account" component={AccountPage} />
-        <Route path="/admin" component={AdminPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      {/* Admin routes — own layout, no storefront header/footer */}
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/admin/:rest*" component={AdminPage} />
+
+      {/* Storefront routes */}
+      <Route>
+        <Layout>
+          <Switch>
+            <Route path="/" component={HomePage} />
+            <Route path="/shop" component={ShopPage} />
+            <Route path="/product/:id" component={ProductPage} />
+            <Route path="/cart" component={CartPage} />
+            <Route path="/checkout" component={CheckoutPage} />
+            <Route path="/track" component={TrackPage} />
+            <Route path="/account" component={AccountPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </Layout>
+      </Route>
+    </Switch>
   );
 }
 

@@ -48,6 +48,38 @@ export const CreateCategoryResponse = zod.object({
 
 
 /**
+ * @summary Update a category (admin)
+ */
+export const UpdateCategoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateCategoryBody = zod.object({
+  "nameAr": zod.string(),
+  "slug": zod.string(),
+  "image": zod.string().optional()
+})
+
+export const UpdateCategoryResponse = zod.object({
+  "id": zod.string(),
+  "nameAr": zod.string(),
+  "slug": zod.string(),
+  "image": zod.string().nullish(),
+  "productCount": zod.number().nullish()
+})
+
+
+/**
+ * @summary Delete a category (admin)
+ */
+export const DeleteCategoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteCategoryResponse = zod.void()
+
+
+/**
  * @summary List products with filters
  */
 export const ListProductsQueryParams = zod.object({
@@ -513,6 +545,8 @@ export const GetAdminStatsResponse = zod.object({
   "totalCustomers": zod.number(),
   "lowStockCount": zod.number(),
   "pendingOrders": zod.number(),
+  "todayOrders": zod.number().optional(),
+  "totalProducts": zod.number().optional(),
   "recentOrders": zod.array(zod.object({
   "id": zod.string(),
   "orderNumber": zod.string().nullish(),
@@ -533,7 +567,12 @@ export const GetAdminStatsResponse = zod.object({
   "price": zod.number()
 })),
   "createdAt": zod.string().optional()
-}))
+})),
+  "lowStockProducts": zod.array(zod.object({
+  "id": zod.string(),
+  "nameAr": zod.string(),
+  "stock": zod.number()
+})).optional()
 })
 
 
@@ -546,6 +585,79 @@ export const GetSalesChartResponseItem = zod.object({
   "orders": zod.number()
 })
 export const GetSalesChartResponse = zod.array(GetSalesChartResponseItem)
+
+
+/**
+ * @summary Get revenue breakdown by category
+ */
+export const GetCategorySalesResponseItem = zod.object({
+  "name": zod.string(),
+  "value": zod.number()
+})
+export const GetCategorySalesResponse = zod.array(GetCategorySalesResponseItem)
+
+
+/**
+ * @summary List customers with order stats
+ */
+export const ListAdminCustomersQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional()
+})
+
+export const ListAdminCustomersResponse = zod.object({
+  "customers": zod.array(zod.object({
+  "userId": zod.string(),
+  "name": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "orderCount": zod.number(),
+  "totalSpend": zod.number(),
+  "createdAt": zod.string().nullish()
+})),
+  "total": zod.number(),
+  "page": zod.number()
+})
+
+
+/**
+ * @summary Get orders for a specific customer
+ */
+export const GetCustomerOrdersParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const GetCustomerOrdersResponseItem = zod.object({
+  "id": zod.string(),
+  "orderNumber": zod.string().nullish(),
+  "userId": zod.string().nullish(),
+  "status": zod.enum(['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
+  "total": zod.number(),
+  "shippingAddress": zod.record(zod.string(), zod.unknown()).optional(),
+  "paymentMethod": zod.string().optional(),
+  "paymentStatus": zod.string().optional(),
+  "couponCode": zod.string().nullish(),
+  "discount": zod.number().optional(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "productId": zod.string(),
+  "productName": zod.string().nullish(),
+  "productImage": zod.string().nullish(),
+  "quantity": zod.number(),
+  "price": zod.number()
+})),
+  "createdAt": zod.string().optional()
+})
+export const GetCustomerOrdersResponse = zod.array(GetCustomerOrdersResponseItem)
+
+
+/**
+ * @summary Export orders as CSV
+ */
+export const ExportOrdersQueryParams = zod.object({
+  "status": zod.coerce.string().optional()
+})
+
+export const ExportOrdersResponse = zod.unknown()
 
 
 /**
