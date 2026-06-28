@@ -1,6 +1,5 @@
 import { useLocation } from "wouter";
-import { useAuth, SignInButton } from "@clerk/react";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/react";
 import AdminLayout from "@/admin/AdminLayout";
 import DashboardPage from "@/admin/dashboard";
 import ProductsPage from "@/admin/products";
@@ -21,18 +20,32 @@ function getAdminPage(location: string) {
 }
 
 export default function AdminPage() {
-  const [location] = useLocation();
-  const { isSignedIn } = useAuth();
+  const [location, setLocation] = useLocation();
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center" dir="rtl">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-gray-800">لوحة تحكم كنوز</h1>
-          <p className="text-gray-500">يجب تسجيل الدخول للوصول إلى لوحة التحكم</p>
-          <SignInButton mode="modal">
-            <Button className="bg-[#C9A84C] hover:bg-[#b8963e] text-black">تسجيل الدخول</Button>
-          </SignInButton>
+      <div className="min-h-screen bg-[#FAF5EB] flex items-center justify-center" dir="rtl">
+        <div className="text-center space-y-6 max-w-sm px-4">
+          <div className="text-5xl font-extrabold text-[#C9A84C]">كنوز</div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-gray-800">لوحة التحكم</h1>
+            <p className="text-gray-500">يجب تسجيل الدخول للوصول إلى لوحة التحكم</p>
+          </div>
+          <button
+            onClick={() => setLocation("/sign-in")}
+            className="w-full bg-[#C9A84C] hover:bg-[#b8963e] text-black font-bold py-3 px-6 rounded-xl transition-colors"
+          >
+            تسجيل الدخول
+          </button>
         </div>
       </div>
     );
