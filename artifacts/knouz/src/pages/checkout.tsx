@@ -12,19 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateOrder } from "@workspace/api-client-react";
 import { useAuth, SignInButton } from "@clerk/react";
 import { ShoppingBag } from "lucide-react";
-
-const schema = z.object({
-  name: z.string().min(2, "الاسم مطلوب"),
-  phone: z.string().min(10, "رقم الهاتف غير صحيح"),
-  address: z.string().min(5, "العنوان مطلوب"),
-  city: z.string().min(2, "المدينة مطلوبة"),
-  governorate: z.string().min(2, "المحافظة مطلوبة"),
-});
-
-type FormValues = z.infer<typeof schema>;
-
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(Math.round(p)) + " جنيه";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice } from "@/lib/formatters";
 
 const GOVERNORATES = [
   "القاهرة","الجيزة","الإسكندرية","الدقهلية","الشرقية","القليوبية",
@@ -35,12 +25,24 @@ const GOVERNORATES = [
 ];
 
 export default function CheckoutPage() {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const { isSignedIn, userId } = useAuth();
   const { items, subtotal, discount, total, coupon, clearCart } = useCartStore();
   const itemTotal = useCartStore((s) => s.itemTotal);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [orderDone, setOrderDone] = useState<{ orderNumber: string } | null>(null);
+
+  const schema = z.object({
+    name: z.string().min(2, t("checkout.validation.name")),
+    phone: z.string().min(10, t("checkout.validation.phone")),
+    address: z.string().min(5, t("checkout.validation.address")),
+    city: z.string().min(2, t("checkout.validation.city")),
+    governorate: z.string().min(2, t("checkout.validation.governorate")),
+  });
+
+  type FormValues = z.infer<typeof schema>;
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -53,7 +55,7 @@ export default function CheckoutPage() {
         setOrderDone({ orderNumber: data.orderNumber ?? "" });
       },
       onError: () =>
-        toast({ title: "حدث خطأ أثناء إنشاء الطلب", variant: "destructive" }),
+        toast({ title: t("checkout.error"), variant: "destructive" }),
     },
   });
 
@@ -61,9 +63,9 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <ShoppingBag size={48} className="mx-auto text-muted-foreground" strokeWidth={1} />
-        <h2 className="text-xl font-bold">يجب تسجيل الدخول لإتمام الشراء</h2>
+        <h2 className="text-xl font-bold">{t("checkout.login_required")}</h2>
         <SignInButton mode="modal">
-          <Button>تسجيل الدخول</Button>
+          <Button>{t("checkout.login_btn")}</Button>
         </SignInButton>
       </div>
     );
@@ -78,17 +80,17 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <div className="text-6xl">🎉</div>
-        <h1 className="text-2xl font-extrabold text-primary">تم إنشاء طلبك بنجاح!</h1>
-        <p className="text-muted-foreground">رقم طلبك:</p>
+        <h1 className="text-2xl font-extrabold text-primary">{t("checkout.thank_you")}</h1>
+        <p className="text-muted-foreground">{t("checkout.order_number")}</p>
         <code className="text-lg font-bold bg-primary/10 text-primary px-4 py-2 rounded-lg block">
           {orderDone.orderNumber}
         </code>
         <p className="text-sm text-muted-foreground">
-          احتفظ بهذا الرقم لتتبع طلبك
+          {t("checkout.keep_number")}
         </p>
         <div className="flex gap-3 justify-center">
-          <Button onClick={() => navigate("/track")}>تتبع الطلب</Button>
-          <Button variant="outline" onClick={() => navigate("/")}>الرئيسية</Button>
+          <Button onClick={() => navigate("/track")}>{t("checkout.track_order")}</Button>
+          <Button variant="outline" onClick={() => navigate("/")}>{t("checkout.go_home")}</Button>
         </div>
       </div>
     );
@@ -114,46 +116,46 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-extrabold mb-8">إتمام الشراء</h1>
+      <h1 className="text-3xl font-extrabold mb-8">{t("checkout.title")}</h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <form onSubmit={handleSubmit(onSubmit)} className="lg:col-span-2 space-y-6">
           <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-            <h2 className="font-bold text-lg">بيانات الشحن</h2>
+            <h2 className="font-bold text-lg">{t("checkout.shipping_info")}</h2>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="name">الاسم الكامل *</Label>
-                <Input id="name" placeholder="محمد أحمد" {...register("name")} />
+                <Label htmlFor="name">{t("checkout.name")} *</Label>
+                <Input id="name" placeholder={t("checkout.name_placeholder")} {...register("name")} />
                 {errors.name && <p className="text-destructive text-xs">{errors.name.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="phone">رقم الهاتف *</Label>
+                <Label htmlFor="phone">{t("checkout.phone")} *</Label>
                 <Input id="phone" placeholder="01xxxxxxxxx" {...register("phone")} dir="ltr" />
                 {errors.phone && <p className="text-destructive text-xs">{errors.phone.message}</p>}
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="address">العنوان التفصيلي *</Label>
-              <Input id="address" placeholder="الشارع، المبنى، الشقة" {...register("address")} />
+              <Label htmlFor="address">{t("checkout.street")} *</Label>
+              <Input id="address" placeholder={t("checkout.street_placeholder")} {...register("address")} />
               {errors.address && <p className="text-destructive text-xs">{errors.address.message}</p>}
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="city">المدينة *</Label>
-                <Input id="city" placeholder="القاهرة" {...register("city")} />
+                <Label htmlFor="city">{t("checkout.city")} *</Label>
+                <Input id="city" placeholder={t("checkout.city_placeholder")} {...register("city")} />
                 {errors.city && <p className="text-destructive text-xs">{errors.city.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="governorate">المحافظة *</Label>
+                <Label htmlFor="governorate">{t("checkout.governorate")} *</Label>
                 <select
                   id="governorate"
                   {...register("governorate")}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 >
-                  <option value="">اختر المحافظة</option>
+                  <option value="">{t("checkout.governorate_placeholder")}</option>
                   {GOVERNORATES.map((g) => (
                     <option key={g} value={g}>{g}</option>
                   ))}
@@ -164,10 +166,10 @@ export default function CheckoutPage() {
           </div>
 
           <div className="bg-card border border-border rounded-xl p-5 space-y-3">
-            <h2 className="font-bold text-lg">طريقة الدفع</h2>
+            <h2 className="font-bold text-lg">{t("checkout.payment_method")}</h2>
             <div className="flex items-center gap-3 p-3 border-2 border-primary rounded-lg bg-primary/5">
               <input type="radio" checked readOnly id="cod" />
-              <Label htmlFor="cod" className="cursor-pointer">الدفع عند الاستلام</Label>
+              <Label htmlFor="cod" className="cursor-pointer">{t("checkout.cod")}</Label>
             </div>
           </div>
 
@@ -177,12 +179,12 @@ export default function CheckoutPage() {
             size="lg"
             disabled={createOrder.isPending}
           >
-            {createOrder.isPending ? "جاري تأكيد الطلب..." : "تأكيد الطلب"}
+            {createOrder.isPending ? t("checkout.placing_order") : t("checkout.place_order")}
           </Button>
         </form>
 
         <div className="bg-card border border-border rounded-xl p-5 h-fit space-y-4">
-          <h2 className="font-bold text-lg">ملخص الطلب ({itemTotal})</h2>
+          <h2 className="font-bold text-lg">{t("checkout.order_summary")} ({itemTotal})</h2>
           <div className="space-y-2 max-h-56 overflow-y-auto">
             {items.map((item) => (
               <div key={item.id} className="flex gap-2 text-sm">
@@ -194,7 +196,7 @@ export default function CheckoutPage() {
                   <p className="text-muted-foreground">× {item.quantity}</p>
                 </div>
                 <span className="text-sm font-medium shrink-0">
-                  {formatPrice(item.price * item.quantity)}
+                  {formatPrice(item.price * item.quantity, locale)}
                 </span>
               </div>
             ))}
@@ -202,24 +204,24 @@ export default function CheckoutPage() {
           <Separator />
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">المجموع</span>
-              <span>{formatPrice(subtotal)}</span>
+              <span className="text-muted-foreground">{t("cart.subtotal")}</span>
+              <span>{formatPrice(subtotal, locale)}</span>
             </div>
             {coupon && discount > 0 && (
               <div className="flex justify-between text-green-600">
-                <span>خصم ({coupon.code})</span>
-                <span>− {formatPrice(discount)}</span>
+                <span>{t("cart.discount")} ({coupon.code})</span>
+                <span>− {formatPrice(discount, locale)}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">الشحن</span>
-              <span className="text-green-600">مجاني</span>
+              <span className="text-muted-foreground">{t("cart.shipping")}</span>
+              <span className="text-green-600">{t("cart.free_shipping")}</span>
             </div>
           </div>
           <Separator />
           <div className="flex justify-between font-bold text-lg">
-            <span>الإجمالي</span>
-            <span className="text-primary">{formatPrice(total)}</span>
+            <span>{t("cart.total")}</span>
+            <span className="text-primary">{formatPrice(total, locale)}</span>
           </div>
         </div>
       </div>

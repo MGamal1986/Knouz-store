@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -13,6 +12,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice } from "@/lib/formatters";
 import {
   getListCouponsQueryOptions,
   useCreateCoupon,
@@ -20,14 +22,13 @@ import {
 } from "@workspace/api-client-react";
 import type { Coupon } from "@workspace/api-client-react";
 
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(Math.round(p)) + " جنيه";
-
 function generateCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 }
 
 export default function AdminCouponsPage() {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -41,19 +42,19 @@ export default function AdminCouponsPage() {
   const createCoupon = useCreateCoupon({
     mutation: {
       onSuccess: () => {
-        toast({ title: "تم إضافة الكوبون بنجاح" });
+        toast({ title: locale === "ar" ? "تم إضافة الكوبون بنجاح" : "Coupon created successfully" });
         queryClient.invalidateQueries({ queryKey: getListCouponsQueryOptions().queryKey });
         setOpen(false);
         setForm({ code: "", discount: "", type: "PERCENTAGE", minOrder: "", expiresAt: "", usageLimit: "" });
       },
-      onError: () => toast({ title: "خطأ في إضافة الكوبون", variant: "destructive" }),
+      onError: () => toast({ title: locale === "ar" ? "خطأ في إضافة الكوبون" : "Error creating coupon", variant: "destructive" }),
     },
   });
 
   const deleteCoupon = useDeleteCoupon({
     mutation: {
       onSuccess: () => {
-        toast({ title: "تم حذف الكوبون" });
+        toast({ title: t("common.delete_success") });
         queryClient.invalidateQueries({ queryKey: getListCouponsQueryOptions().queryKey });
         setDeleteId(null);
       },
@@ -66,21 +67,23 @@ export default function AdminCouponsPage() {
   return (
     <div className="space-y-5">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">{(coupons ?? []).length} كوبون</p>
+        <p className="text-sm text-gray-500">
+          {(coupons ?? []).length} {locale === "ar" ? "كوبون" : "coupons"}
+        </p>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="bg-[#C9A84C] hover:bg-[#b8963e] text-black gap-2">
               <Plus size={16} />
-              إنشاء كوبون
+              {locale === "ar" ? "إنشاء كوبون" : "Create Coupon"}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-sm" dir="rtl">
+          <DialogContent className="max-w-sm" dir={locale === "ar" ? "rtl" : "ltr"}>
             <DialogHeader>
-              <DialogTitle>إنشاء كوبون خصم جديد</DialogTitle>
+              <DialogTitle>{locale === "ar" ? "إنشاء كوبون خصم جديد" : "Create New Discount Coupon"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div className="space-y-1.5">
-                <Label>كود الخصم *</Label>
+                <Label>{locale === "ar" ? "كود الخصم *" : "Discount Code *"}</Label>
                 <div className="flex gap-2">
                   <Input
                     value={form.code}
@@ -90,36 +93,36 @@ export default function AdminCouponsPage() {
                     className="flex-1"
                   />
                   <Button variant="outline" size="sm" onClick={() => setForm({ ...form, code: generateCode() })}>
-                    توليد
+                    {locale === "ar" ? "توليد" : "Generate"}
                   </Button>
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>نوع الخصم</Label>
+                <Label>{locale === "ar" ? "نوع الخصم" : "Discount Type"}</Label>
                 <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PERCENTAGE">نسبة مئوية %</SelectItem>
-                    <SelectItem value="FIXED">مبلغ ثابت جنيه</SelectItem>
+                    <SelectItem value="PERCENTAGE">{locale === "ar" ? "نسبة مئوية %" : "Percentage %"}</SelectItem>
+                    <SelectItem value="FIXED">{locale === "ar" ? "مبلغ ثابت جنيه" : "Fixed Amount EGP"}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>قيمة الخصم *</Label>
+                <Label>{locale === "ar" ? "قيمة الخصم *" : "Discount Value *"}</Label>
                 <Input type="number" dir="ltr" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>الحد الأدنى للطلب (جنيه)</Label>
+                <Label>{locale === "ar" ? "الحد الأدنى للطلب (جنيه)" : "Minimum Order (EGP)"}</Label>
                 <Input type="number" dir="ltr" value={form.minOrder} onChange={(e) => setForm({ ...form, minOrder: e.target.value })} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <Label>تاريخ الانتهاء</Label>
+                <Label>{locale === "ar" ? "تاريخ الانتهاء" : "Expiry Date"}</Label>
                 <Input type="date" dir="ltr" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>حد الاستخدام (اتركه فارغاً لعدد غير محدود)</Label>
+                <Label>{locale === "ar" ? "حد الاستخدام (اتركه فارغاً لعدد غير محدود)" : "Usage Limit (leave blank for unlimited)"}</Label>
                 <Input type="number" dir="ltr" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} placeholder="∞" />
               </div>
               <Button
@@ -138,7 +141,9 @@ export default function AdminCouponsPage() {
                   })
                 }
               >
-                {createCoupon.isPending ? "جاري الإنشاء..." : "إنشاء الكوبون"}
+                {createCoupon.isPending
+                  ? t("admin.loading")
+                  : (locale === "ar" ? "إنشاء الكوبون" : "Create Coupon")}
               </Button>
             </div>
           </DialogContent>
@@ -153,18 +158,18 @@ export default function AdminCouponsPage() {
         ) : (coupons ?? []).length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             <Tag size={32} strokeWidth={1} className="mx-auto mb-2" />
-            <p>لا توجد كوبونات بعد</p>
+            <p>{locale === "ar" ? "لا توجد كوبونات بعد" : "No coupons yet"}</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
               <tr>
-                <th className="text-start px-4 py-3 font-medium">الكود</th>
-                <th className="text-start px-4 py-3 font-medium">نوع الخصم</th>
-                <th className="text-start px-4 py-3 font-medium">قيمة الخصم</th>
-                <th className="text-start px-4 py-3 font-medium">الحد الأدنى</th>
-                <th className="text-start px-4 py-3 font-medium">الاستخدام</th>
-                <th className="text-start px-4 py-3 font-medium">الحالة</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "الكود" : "Code"}</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "نوع الخصم" : "Type"}</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "قيمة الخصم" : "Value"}</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "الحد الأدنى" : "Min Order"}</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "الاستخدام" : "Usage"}</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "الحالة" : "Status"}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -179,13 +184,15 @@ export default function AdminCouponsPage() {
                       <code className="font-bold text-[#C9A84C]">{c.code}</code>
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {c.type === "PERCENTAGE" ? "نسبة %" : "مبلغ ثابت"}
+                      {c.type === "PERCENTAGE"
+                        ? (locale === "ar" ? "نسبة %" : "Percentage")
+                        : (locale === "ar" ? "مبلغ ثابت" : "Fixed")}
                     </td>
                     <td className="px-4 py-3 font-medium">
-                      {c.type === "PERCENTAGE" ? `${c.discount}%` : formatPrice(c.discount)}
+                      {c.type === "PERCENTAGE" ? `${c.discount}%` : formatPrice(c.discount, locale)}
                     </td>
                     <td className="px-4 py-3 text-gray-500">
-                      {c.minOrder ? formatPrice(c.minOrder) : "لا يوجد"}
+                      {c.minOrder ? formatPrice(c.minOrder, locale) : (locale === "ar" ? "لا يوجد" : "None")}
                     </td>
                     <td className="px-4 py-3 text-gray-500">
                       {c.usedCount ?? 0}{c.usageLimit ? `/${c.usageLimit}` : ""}
@@ -194,7 +201,11 @@ export default function AdminCouponsPage() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                         active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500"
                       }`}>
-                        {active ? "نشط" : expired ? "منتهي" : "مستنفد"}
+                        {active
+                          ? (locale === "ar" ? "نشط" : "Active")
+                          : expired
+                            ? (locale === "ar" ? "منتهي" : "Expired")
+                            : (locale === "ar" ? "مستنفد" : "Exhausted")}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -216,16 +227,25 @@ export default function AdminCouponsPage() {
       </div>
 
       <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
-        <DialogContent className="max-w-sm" dir="rtl">
+        <DialogContent className="max-w-sm" dir={locale === "ar" ? "rtl" : "ltr"}>
           <DialogHeader>
-            <DialogTitle>تأكيد حذف الكوبون</DialogTitle>
+            <DialogTitle>{t("admin.confirm_delete")}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 py-2">هل أنت متأكد من حذف هذا الكوبون؟</p>
+          <p className="text-sm text-gray-600 py-2">
+            {locale === "ar" ? "هل أنت متأكد من حذف هذا الكوبون؟" : "Are you sure you want to delete this coupon?"}
+          </p>
           <div className="flex gap-2">
-            <Button variant="destructive" className="flex-1" onClick={() => deleteId && deleteCoupon.mutate({ id: deleteId })} disabled={deleteCoupon.isPending}>
-              {deleteCoupon.isPending ? "جاري الحذف..." : "حذف"}
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => deleteId && deleteCoupon.mutate({ id: deleteId })}
+              disabled={deleteCoupon.isPending}
+            >
+              {deleteCoupon.isPending ? t("admin.loading") : (locale === "ar" ? "حذف" : "Delete")}
             </Button>
-            <Button variant="outline" className="flex-1" onClick={() => setDeleteId(null)}>إلغاء</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteId(null)}>
+              {t("admin.cancel")}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

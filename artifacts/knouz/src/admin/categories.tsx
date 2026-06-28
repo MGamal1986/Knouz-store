@@ -9,6 +9,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
 import {
   getListCategoriesQueryOptions,
   useCreateCategory,
@@ -35,6 +37,8 @@ function CategoryModal({
   open: boolean; onClose: () => void; editCategory?: Category | null;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(
     editCategory
@@ -46,15 +50,23 @@ function CategoryModal({
 
   const create = useCreateCategory({
     mutation: {
-      onSuccess: () => { toast({ title: "تم إضافة الفئة" }); invalidate(); onClose(); },
-      onError: () => toast({ title: "خطأ في حفظ الفئة", variant: "destructive" }),
+      onSuccess: () => {
+        toast({ title: locale === "ar" ? "تم إضافة الفئة" : "Category added" });
+        invalidate();
+        onClose();
+      },
+      onError: () => toast({ title: locale === "ar" ? "خطأ في حفظ الفئة" : "Error saving category", variant: "destructive" }),
     },
   });
 
   const update = useUpdateCategory({
     mutation: {
-      onSuccess: () => { toast({ title: "تم تحديث الفئة" }); invalidate(); onClose(); },
-      onError: () => toast({ title: "خطأ في تحديث الفئة", variant: "destructive" }),
+      onSuccess: () => {
+        toast({ title: locale === "ar" ? "تم تحديث الفئة" : "Category updated" });
+        invalidate();
+        onClose();
+      },
+      onError: () => toast({ title: locale === "ar" ? "خطأ في تحديث الفئة" : "Error updating category", variant: "destructive" }),
     },
   });
 
@@ -71,13 +83,17 @@ function CategoryModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm" dir="rtl">
+      <DialogContent className="max-w-sm" dir={locale === "ar" ? "rtl" : "ltr"}>
         <DialogHeader>
-          <DialogTitle>{editCategory ? "تعديل الفئة" : "إضافة فئة جديدة"}</DialogTitle>
+          <DialogTitle>
+            {editCategory
+              ? (locale === "ar" ? "تعديل الفئة" : "Edit Category")
+              : (locale === "ar" ? "إضافة فئة جديدة" : "Add New Category")}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <Label>اسم الفئة بالعربي *</Label>
+            <Label>{locale === "ar" ? "اسم الفئة بالعربي *" : "Arabic Category Name *"}</Label>
             <Input
               value={form.nameAr}
               onChange={(e) => {
@@ -87,21 +103,25 @@ function CategoryModal({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>الـ Slug (رابط مختصر)</Label>
+            <Label>{locale === "ar" ? "الـ Slug (رابط مختصر)" : "Slug (URL identifier)"}</Label>
             <Input dir="ltr" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="jewelry" />
           </div>
           <div className="space-y-1.5">
-            <Label>رابط الصورة</Label>
+            <Label>{locale === "ar" ? "رابط الصورة" : "Image URL"}</Label>
             <Input dir="ltr" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="https://..." />
             {form.image && (
               <img src={form.image} alt="" className="w-full h-28 object-cover rounded-lg mt-1" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
             )}
           </div>
           <div className="flex gap-2 pt-1">
-            <Button className="flex-1 bg-[#C9A84C] hover:bg-[#b8963e] text-black" disabled={!form.nameAr || isPending} onClick={handleSave}>
-              {isPending ? "جاري الحفظ..." : "حفظ الفئة"}
+            <Button
+              className="flex-1 bg-[#C9A84C] hover:bg-[#b8963e] text-black"
+              disabled={!form.nameAr || isPending}
+              onClick={handleSave}
+            >
+              {isPending ? t("admin.loading") : t("admin.save")}
             </Button>
-            <Button variant="outline" onClick={onClose}>إلغاء</Button>
+            <Button variant="outline" onClick={onClose}>{t("admin.cancel")}</Button>
           </div>
         </div>
       </DialogContent>
@@ -111,6 +131,8 @@ function CategoryModal({
 
 export default function AdminCategoriesPage() {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editCategory, setEditCategory] = useState<Category | null>(null);
@@ -121,13 +143,13 @@ export default function AdminCategoriesPage() {
   const deleteCategory = useDeleteCategory({
     mutation: {
       onSuccess: () => {
-        toast({ title: "تم حذف الفئة" });
+        toast({ title: t("common.delete_success") });
         queryClient.invalidateQueries({ queryKey: getListCategoriesQueryOptions().queryKey });
         setDeleteId(null);
       },
       onError: (err: unknown) => {
         const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        toast({ title: msg ?? "لا يمكن حذف هذه الفئة", variant: "destructive" });
+        toast({ title: msg ?? (locale === "ar" ? "لا يمكن حذف هذه الفئة" : "Cannot delete this category"), variant: "destructive" });
         setDeleteId(null);
       },
     },
@@ -136,13 +158,15 @@ export default function AdminCategoriesPage() {
   return (
     <div className="space-y-5">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">{(categories ?? []).length} فئة</p>
+        <p className="text-sm text-gray-500">
+          {(categories ?? []).length} {locale === "ar" ? "فئة" : "categories"}
+        </p>
         <Button
           className="bg-[#C9A84C] hover:bg-[#b8963e] text-black gap-2"
           onClick={() => { setEditCategory(null); setModalOpen(true); }}
         >
           <Plus size={16} />
-          إضافة فئة
+          {locale === "ar" ? "إضافة فئة" : "Add Category"}
         </Button>
       </div>
 
@@ -152,15 +176,17 @@ export default function AdminCategoriesPage() {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)}
           </div>
         ) : (categories ?? []).length === 0 ? (
-          <div className="py-16 text-center text-gray-400">لا توجد فئات</div>
+          <div className="py-16 text-center text-gray-400">
+            {locale === "ar" ? "لا توجد فئات" : "No categories yet"}
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
               <tr>
-                <th className="text-start px-4 py-3 font-medium">الصورة</th>
-                <th className="text-start px-4 py-3 font-medium">اسم الفئة</th>
-                <th className="text-start px-4 py-3 font-medium">الـ Slug</th>
-                <th className="text-center px-4 py-3 font-medium">عدد المنتجات</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "الصورة" : "Image"}</th>
+                <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "اسم الفئة" : "Name"}</th>
+                <th className="text-start px-4 py-3 font-medium">Slug</th>
+                <th className="text-center px-4 py-3 font-medium">{locale === "ar" ? "عدد المنتجات" : "Products"}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -215,18 +241,27 @@ export default function AdminCategoriesPage() {
       />
 
       <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
-        <DialogContent className="max-w-sm" dir="rtl">
+        <DialogContent className="max-w-sm" dir={locale === "ar" ? "rtl" : "ltr"}>
           <DialogHeader>
-            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogTitle>{t("admin.confirm_delete")}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600 py-2">
-            هل أنت متأكد من حذف هذه الفئة؟ لا يمكن حذف فئة تحتوي على منتجات.
+            {locale === "ar"
+              ? "هل أنت متأكد من حذف هذه الفئة؟ لا يمكن حذف فئة تحتوي على منتجات."
+              : "Are you sure you want to delete this category? Categories with products cannot be deleted."}
           </p>
           <div className="flex gap-2">
-            <Button variant="destructive" className="flex-1" onClick={() => deleteId && deleteCategory.mutate({ id: deleteId })} disabled={deleteCategory.isPending}>
-              {deleteCategory.isPending ? "جاري الحذف..." : "حذف"}
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => deleteId && deleteCategory.mutate({ id: deleteId })}
+              disabled={deleteCategory.isPending}
+            >
+              {deleteCategory.isPending ? t("admin.loading") : (locale === "ar" ? "حذف" : "Delete")}
             </Button>
-            <Button variant="outline" className="flex-1" onClick={() => setDeleteId(null)}>إلغاء</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteId(null)}>
+              {t("admin.cancel")}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

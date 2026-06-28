@@ -18,8 +18,10 @@ import {
 } from "@workspace/api-client-react";
 import type { Category } from "@workspace/api-client-react";
 import { useSearch } from "wouter";
+import { useTranslation } from "react-i18next";
 
 export default function ShopPage() {
+  const { t } = useTranslation();
   const searchStr = useSearch();
   const params = new URLSearchParams(searchStr);
   const defaultCat = params.get("category") ?? "";
@@ -42,13 +44,13 @@ export default function ShopPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-extrabold mb-6">المتجر</h1>
+      <h1 className="text-3xl font-extrabold mb-6">{t("shop.title")}</h1>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="ابحث عن منتج..."
+            placeholder={t("shop.search_placeholder")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -66,10 +68,10 @@ export default function ShopPage() {
         >
           <SelectTrigger className="w-full sm:w-52">
             <SlidersHorizontal size={14} className="me-2" />
-            <SelectValue placeholder="كل الفئات" />
+            <SelectValue placeholder={t("shop.all_categories")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل الفئات</SelectItem>
+            <SelectItem value="all">{t("shop.all_categories")}</SelectItem>
             {(categories ?? []).map((cat: Category) => (
               <SelectItem key={cat.id} value={cat.id}>
                 {cat.nameAr}
@@ -87,12 +89,12 @@ export default function ShopPage() {
         </div>
       ) : products?.products?.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg">لا توجد منتجات</p>
+          <p className="text-lg">{t("shop.no_results")}</p>
         </div>
       ) : (
         <>
           <p className="text-sm text-muted-foreground mb-4">
-            {products?.total ?? 0} منتج
+            {t("shop.results_count", { count: products?.total ?? 0 })}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {(products?.products ?? []).map((product) => (
@@ -107,7 +109,7 @@ export default function ShopPage() {
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
               >
-                السابق
+                {t("shop.prev")}
               </Button>
               <span className="flex items-center px-4 text-sm text-muted-foreground">
                 {page} / {totalPages}
@@ -117,7 +119,7 @@ export default function ShopPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                التالي
+                {t("shop.next")}
               </Button>
             </div>
           )}

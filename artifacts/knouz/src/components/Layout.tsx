@@ -6,21 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cart";
-
-const navLinks = [
-  { href: "/", label: "الرئيسية" },
-  { href: "/shop", label: "المتجر" },
-  { href: "/track", label: "تتبع طلبك" },
-];
-
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(Math.round(p)) + " جنيه";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice } from "@/lib/formatters";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 function CartSheet() {
   const { items, removeItem, updateQuantity, subtotal, discount, total, coupon } =
     useCartStore();
   const itemTotal = useCartStore((s) => s.itemTotal);
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
+  const { locale } = useLocale();
 
   return (
     <Sheet>
@@ -36,12 +33,12 @@ function CartSheet() {
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:w-[400px] flex flex-col">
         <SheetHeader>
-          <SheetTitle>سلة التسوق ({itemTotal})</SheetTitle>
+          <SheetTitle>{t("cart.title")} ({itemTotal})</SheetTitle>
         </SheetHeader>
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <ShoppingCart size={48} strokeWidth={1} />
-            <p>سلتك فارغة</p>
+            <p>{t("cart.empty")}</p>
           </div>
         ) : (
           <>
@@ -58,7 +55,7 @@ function CartSheet() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium line-clamp-2">{item.nameAr}</p>
                     <p className="text-primary font-bold text-sm mt-1">
-                      {formatPrice(item.price)}
+                      {formatPrice(item.price, locale)}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <button
@@ -96,25 +93,25 @@ function CartSheet() {
             </div>
             <div className="border-t border-border pt-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">المجموع الفرعي</span>
-                <span>{formatPrice(subtotal)}</span>
+                <span className="text-muted-foreground">{t("cart.subtotal")}</span>
+                <span>{formatPrice(subtotal, locale)}</span>
               </div>
               {coupon && discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
-                  <span>خصم ({coupon.code})</span>
-                  <span>− {formatPrice(discount)}</span>
+                  <span>{t("cart.discount")} ({coupon.code})</span>
+                  <span>− {formatPrice(discount, locale)}</span>
                 </div>
               )}
               <Separator />
               <div className="flex justify-between font-bold">
-                <span>الإجمالي</span>
-                <span className="text-primary">{formatPrice(total)}</span>
+                <span>{t("cart.total")}</span>
+                <span className="text-primary">{formatPrice(total, locale)}</span>
               </div>
               <Button
                 className="w-full mt-2"
                 onClick={() => navigate("/checkout")}
               >
-                إتمام الشراء
+                {t("cart.checkout")}
               </Button>
             </div>
           </>
@@ -128,9 +125,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { isSignedIn } = useAuth();
+  const { t } = useTranslation();
+
+  const navLinks = [
+    { href: "/", label: t("nav.home") },
+    { href: "/shop", label: t("nav.shop") },
+    { href: "/track", label: t("nav.track") },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-[Cairo,sans-serif]">
+    <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2">
@@ -159,6 +163,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <Link href="/account">
               <Button variant="ghost" size="icon">
                 <Package size={20} />
@@ -171,7 +176,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <SignInButton mode="modal">
                 <Button variant="outline" size="sm" className="gap-1">
                   <LogIn size={14} />
-                  تسجيل الدخول
+                  {t("nav.login")}
                 </Button>
               </SignInButton>
             )}
@@ -208,11 +213,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div>
             <h3 className="text-xl font-extrabold text-primary mb-2">كنوز</h3>
             <p className="text-sm text-background/70 leading-relaxed">
-              متجرك الإلكتروني للمنتجات المميزة في مصر. جودة عالية وأسعار مناسبة.
+              {t("footer.tagline")}
             </p>
           </div>
           <div>
-            <h4 className="font-semibold mb-3">روابط سريعة</h4>
+            <h4 className="font-semibold mb-3">{t("footer.quick_links")}</h4>
             <ul className="space-y-2 text-sm text-background/70">
               {navLinks.map(({ href, label }) => (
                 <li key={href}>
@@ -223,24 +228,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               ))}
               <li>
                 <Link href="/account" className="hover:text-primary transition-colors">
-                  حسابي
+                  {t("nav.account")}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-3">تواصل معنا</h4>
+            <h4 className="font-semibold mb-3">{t("footer.contact_us")}</h4>
             <p className="text-sm text-background/70">
               📧 info@knouz.eg
               <br />
               📞 01000000000
               <br />
-              📍 القاهرة، مصر
+              📍 {t("locale") === "ar" ? "القاهرة، مصر" : "Cairo, Egypt"}
             </p>
           </div>
         </div>
         <div className="border-t border-background/10 px-4 py-4 text-center text-xs text-background/50">
-          © 2026 كنوز — جميع الحقوق محفوظة
+          {t("footer.rights")}
         </div>
       </footer>
     </div>

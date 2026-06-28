@@ -19,9 +19,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useAuth } from "@clerk/react";
 import type { Review } from "@workspace/api-client-react";
-
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(p) + " جنيه";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice, formatDate } from "@/lib/formatters";
 
 function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
   return (
@@ -48,6 +48,8 @@ function StarRating({ value, onChange }: { value: number; onChange?: (v: number)
 }
 
 export default function ProductPage() {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const { id } = useParams<{ id: string }>();
   const { isSignedIn, userId } = useAuth();
   const { toast } = useToast();
@@ -66,12 +68,12 @@ export default function ProductPage() {
   const reviewMutation = useCreateReview({
     mutation: {
       onSuccess: () => {
-        toast({ title: "شكراً لمراجعتك!" });
+        toast({ title: t("product.review_thanks") });
         setComment("");
         setRating(5);
         queryClient.invalidateQueries({ queryKey: getListProductReviewsQueryOptions(id!).queryKey });
       },
-      onError: () => toast({ title: "حدث خطأ", variant: "destructive" }),
+      onError: () => toast({ title: t("common.error"), variant: "destructive" }),
     },
   });
 
@@ -92,18 +94,27 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center text-muted-foreground">
-        المنتج غير موجود
+        {t("product.not_found")}
       </div>
     );
   }
 
   const images = product.images ?? [];
-  const hasDiscount =
-    product.comparePrice && product.comparePrice > product.price;
+  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
   const discountPct = hasDiscount
     ? Math.round((1 - product.price / (product.comparePrice as number)) * 100)
     : 0;
   const wished = isInWishlist(product.id);
+
+  const displayName =
+    locale === "en" && (product as any).nameEn
+      ? (product as any).nameEn
+      : product.nameAr;
+
+  const displayDescription =
+    locale === "en" && (product as any).descriptionEn
+      ? (product as any).descriptionEn
+      : product.descriptionAr;
 
   const handleAddToCart = () => {
     addItem({
@@ -114,12 +125,12 @@ export default function ProductPage() {
       quantity: qty,
       stock: product.stock,
     });
-    toast({ title: "تمت الإضافة إلى السلة ✓" });
+    toast({ title: t("product.added_to_cart") });
   };
 
   const handleReview = () => {
     if (!isSignedIn) {
-      toast({ title: "يجب تسجيل الدخول أولاً", variant: "destructive" });
+      toast({ title: t("product.login_required"), variant: "destructive" });
       return;
     }
     reviewMutation.mutate({
@@ -131,11 +142,11 @@ export default function ProductPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link href="/" className="hover:text-foreground">الرئيسية</Link>
+        <Link href="/" className="hover:text-foreground">{t("nav.home")}</Link>
         <ArrowRight size={12} />
-        <Link href="/shop" className="hover:text-foreground">المتجر</Link>
+        <Link href="/shop" className="hover:text-foreground">{t("nav.shop")}</Link>
         <ArrowRight size={12} />
-        <span className="text-foreground truncate max-w-48">{product.nameAr}</span>
+        <span className="text-foreground truncate max-w-48">{displayName}</span>
       </nav>
 
       <div className="grid md:grid-cols-2 gap-10">
@@ -144,7 +155,7 @@ export default function ProductPage() {
             {images.length > 0 ? (
               <img
                 src={images[imgIdx]}
-                alt={product.nameAr}
+                alt={displayName}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -186,45 +197,51 @@ export default function ProductPage() {
 
         <div className="space-y-5">
           {product.category?.nameAr && (
-            <Badge variant="secondary">{product.category.nameAr}</Badge>
+            <Badge variant="secondary">
+              {locale === "en" && (product.category as any).nameEn
+                ? (product.category as any).nameEn
+                : product.category.nameAr}
+            </Badge>
           )}
-          <h1 className="text-2xl font-extrabold leading-snug">{product.nameAr}</h1>
+          <h1 className="text-2xl font-extrabold leading-snug">{displayName}</h1>
 
           {product.avgRating && product.avgRating > 0 ? (
             <div className="flex items-center gap-2">
               <StarRating value={Math.round(Number(product.avgRating))} />
               <span className="text-sm text-muted-foreground">
-                ({product.reviewCount ?? 0} مراجعة)
+                ({product.reviewCount ?? 0} {t("product.review_count")})
               </span>
             </div>
           ) : null}
 
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-extrabold text-primary">
-              {formatPrice(product.price)}
+              {formatPrice(product.price, locale)}
             </span>
             {hasDiscount && (
               <>
                 <span className="text-lg text-muted-foreground line-through">
-                  {formatPrice(product.comparePrice as number)}
+                  {formatPrice(product.comparePrice as number, locale)}
                 </span>
                 <Badge className="bg-destructive text-destructive-foreground">
-                  خصم {discountPct}%
+                  {t("product.discount", { pct: discountPct })}
                 </Badge>
               </>
             )}
           </div>
 
-          <p className="text-muted-foreground leading-relaxed">{product.descriptionAr}</p>
+          <p className="text-muted-foreground leading-relaxed">{displayDescription}</p>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">المخزون:</span>
+            <span className="text-sm text-muted-foreground">{t("product.stock_label")}</span>
             <span
               className={`text-sm font-medium ${
                 product.stock > 5 ? "text-green-600" : "text-destructive"
               }`}
             >
-              {product.stock > 0 ? `${product.stock} قطعة متاحة` : "نفذ المخزون"}
+              {product.stock > 0
+                ? t("product.stock_count", { count: product.stock })
+                : t("product.out_of_stock")}
             </span>
           </div>
 
@@ -252,7 +269,7 @@ export default function ProductPage() {
               onClick={handleAddToCart}
             >
               <ShoppingCart size={16} />
-              أضف للسلة
+              {t("product.add_to_cart")}
             </Button>
             <Button
               variant="outline"
@@ -272,9 +289,9 @@ export default function ProductPage() {
 
       <div className="grid md:grid-cols-2 gap-10">
         <div>
-          <h2 className="text-xl font-bold mb-4">المراجعات ({reviews?.length ?? 0})</h2>
+          <h2 className="text-xl font-bold mb-4">{t("product.reviews")} ({reviews?.length ?? 0})</h2>
           {reviews?.length === 0 ? (
-            <p className="text-muted-foreground text-sm">لا توجد مراجعات بعد</p>
+            <p className="text-muted-foreground text-sm">{t("product.no_reviews")}</p>
           ) : (
             <div className="space-y-4">
               {(reviews ?? []).map((r: Review) => (
@@ -282,7 +299,7 @@ export default function ProductPage() {
                   <div className="flex items-center justify-between">
                     <StarRating value={r.rating} />
                     <span className="text-xs text-muted-foreground">
-                      {r.createdAt ? new Date(r.createdAt).toLocaleDateString("ar-EG") : ""}
+                      {r.createdAt ? formatDate(r.createdAt, locale) : ""}
                     </span>
                   </div>
                   {r.comment && <p className="text-sm">{r.comment}</p>}
@@ -293,14 +310,14 @@ export default function ProductPage() {
         </div>
 
         <div>
-          <h2 className="text-xl font-bold mb-4">اترك مراجعتك</h2>
+          <h2 className="text-xl font-bold mb-4">{t("product.leave_review")}</h2>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium mb-1 block">التقييم</label>
+              <label className="text-sm font-medium mb-1 block">{t("product.review_rating")}</label>
               <StarRating value={rating} onChange={setRating} />
             </div>
             <Textarea
-              placeholder="اكتب رأيك في المنتج..."
+              placeholder={t("product.review_placeholder")}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
@@ -310,7 +327,7 @@ export default function ProductPage() {
               disabled={reviewMutation.isPending}
               className="w-full"
             >
-              {reviewMutation.isPending ? "جاري الإرسال..." : "إرسال المراجعة"}
+              {reviewMutation.isPending ? t("product.submitting") : t("product.submit_review")}
             </Button>
           </div>
         </div>

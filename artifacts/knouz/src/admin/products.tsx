@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, Search, SlidersHorizontal, Star } from "lucide-react";
+import { Plus, Trash2, Edit, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -24,9 +23,9 @@ import {
   ListProductsSort,
 } from "@workspace/api-client-react";
 import type { Product, Category } from "@workspace/api-client-react";
-
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(p) + " جنيه";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice } from "@/lib/formatters";
 
 type FormState = {
   nameAr: string;
@@ -50,6 +49,7 @@ function ProductModal({
   open: boolean; onClose: () => void; editProduct?: Product | null;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(
     editProduct
@@ -74,22 +74,22 @@ function ProductModal({
   const createProduct = useCreateProduct({
     mutation: {
       onSuccess: () => {
-        toast({ title: "تم إضافة المنتج بنجاح" });
+        toast({ title: t("common.save_success") });
         invalidate();
         onClose();
       },
-      onError: () => toast({ title: "خطأ في حفظ المنتج", variant: "destructive" }),
+      onError: () => toast({ title: t("common.error"), variant: "destructive" }),
     },
   });
 
   const updateProduct = useUpdateProduct({
     mutation: {
       onSuccess: () => {
-        toast({ title: "تم تحديث المنتج بنجاح" });
+        toast({ title: t("common.save_success") });
         invalidate();
         onClose();
       },
-      onError: () => toast({ title: "خطأ في تحديث المنتج", variant: "destructive" }),
+      onError: () => toast({ title: t("common.error"), variant: "destructive" }),
     },
   });
 
@@ -118,7 +118,7 @@ function ProductModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
-          <DialogTitle>{editProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
+          <DialogTitle>{editProduct ? t("admin.edit_product") : t("admin.add_product")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
           <div className="space-y-1.5">
@@ -144,7 +144,7 @@ function ProductModal({
             <Input type="number" dir="ltr" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <Label>الفئة</Label>
+            <Label>{t("admin.categories")}</Label>
             <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v })}>
               <SelectTrigger>
                 <SelectValue placeholder="اختر فئة" />
@@ -174,10 +174,14 @@ function ProductModal({
             <Label>منتج مميز</Label>
           </div>
           <div className="flex gap-2 pt-2">
-            <Button className="flex-1 bg-[#C9A84C] hover:bg-[#b8963e] text-black" onClick={handleSave} disabled={!form.nameAr || !form.price || !form.categoryId || isPending}>
-              {isPending ? "جاري الحفظ..." : "حفظ المنتج"}
+            <Button
+              className="flex-1 bg-[#C9A84C] hover:bg-[#b8963e] text-black"
+              onClick={handleSave}
+              disabled={!form.nameAr || !form.price || !form.categoryId || isPending}
+            >
+              {isPending ? t("common.loading") : t("admin.save")}
             </Button>
-            <Button variant="outline" onClick={onClose}>إلغاء</Button>
+            <Button variant="outline" onClick={onClose}>{t("admin.cancel")}</Button>
           </div>
         </div>
       </DialogContent>
@@ -190,18 +194,19 @@ function ConfirmDialog({
 }: {
   open: boolean; onClose: () => void; onConfirm: () => void; title: string; isPending: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm" dir="rtl">
         <DialogHeader>
-          <DialogTitle>تأكيد الحذف</DialogTitle>
+          <DialogTitle>{t("admin.confirm_delete")}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-gray-600 py-2">{title}</p>
         <div className="flex gap-2">
           <Button variant="destructive" className="flex-1" onClick={onConfirm} disabled={isPending}>
-            {isPending ? "جاري الحذف..." : "حذف"}
+            {isPending ? t("common.loading") : t("admin.delete_product")}
           </Button>
-          <Button variant="outline" className="flex-1" onClick={onClose}>إلغاء</Button>
+          <Button variant="outline" className="flex-1" onClick={onClose}>{t("admin.cancel")}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -210,6 +215,8 @@ function ConfirmDialog({
 
 export default function AdminProductsPage() {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -227,7 +234,7 @@ export default function AdminProductsPage() {
   const deleteProduct = useDeleteProduct({
     mutation: {
       onSuccess: () => {
-        toast({ title: "تم حذف المنتج" });
+        toast({ title: t("common.delete_success") });
         queryClient.invalidateQueries({ queryKey: getListProductsQueryOptions({}).queryKey });
         setDeleteId(null);
       },
@@ -246,12 +253,11 @@ export default function AdminProductsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Toolbar */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
-            placeholder="ابحث عن منتج..."
+            placeholder={t("admin.search")}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="ps-8"
@@ -260,10 +266,10 @@ export default function AdminProductsPage() {
         <Select value={category || "all"} onValueChange={(v) => { setCategory(v === "all" ? "" : v); setPage(1); }}>
           <SelectTrigger className="w-40">
             <SlidersHorizontal size={14} className="me-1" />
-            <SelectValue placeholder="الفئة" />
+            <SelectValue placeholder={t("shop.filter_category")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل الفئات</SelectItem>
+            <SelectItem value="all">{t("shop.all_categories")}</SelectItem>
             {(categories ?? []).map((c: Category) => (
               <SelectItem key={c.id} value={c.id}>{c.nameAr}</SelectItem>
             ))}
@@ -274,9 +280,9 @@ export default function AdminProductsPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">الأحدث</SelectItem>
-            <SelectItem value="price_asc">السعر ↑</SelectItem>
-            <SelectItem value="price_desc">السعر ↓</SelectItem>
+            <SelectItem value="newest">{t("shop.sort_newest")}</SelectItem>
+            <SelectItem value="price_asc">{t("shop.sort_price_asc")}</SelectItem>
+            <SelectItem value="price_desc">{t("shop.sort_price_desc")}</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -284,11 +290,10 @@ export default function AdminProductsPage() {
           onClick={() => { setEditProduct(null); setModalOpen(true); }}
         >
           <Plus size={16} />
-          إضافة منتج
+          {t("admin.add_product")}
         </Button>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
@@ -296,18 +301,18 @@ export default function AdminProductsPage() {
               {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
             </div>
           ) : (products?.products ?? []).length === 0 ? (
-            <div className="py-16 text-center text-gray-400">لا توجد منتجات</div>
+            <div className="py-16 text-center text-gray-400">{t("admin.no_results")}</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
                 <tr>
-                  <th className="text-start px-4 py-3 font-medium">الصورة</th>
-                  <th className="text-start px-4 py-3 font-medium">اسم المنتج</th>
-                  <th className="text-start px-4 py-3 font-medium">الفئة</th>
-                  <th className="text-start px-4 py-3 font-medium">السعر</th>
-                  <th className="text-start px-4 py-3 font-medium">المخزون</th>
-                  <th className="text-start px-4 py-3 font-medium">مميز</th>
-                  <th className="text-start px-4 py-3 font-medium">الإجراءات</th>
+                  <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "الصورة" : "Image"}</th>
+                  <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "اسم المنتج" : "Product"}</th>
+                  <th className="text-start px-4 py-3 font-medium">{t("admin.categories")}</th>
+                  <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "السعر" : "Price"}</th>
+                  <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "المخزون" : "Stock"}</th>
+                  <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "مميز" : "Featured"}</th>
+                  <th className="text-start px-4 py-3 font-medium">{locale === "ar" ? "الإجراءات" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -326,7 +331,7 @@ export default function AdminProductsPage() {
                     <td className="px-4 py-3">
                       <span className="text-gray-500 text-xs">{(p as Product & { category?: { nameAr?: string } }).category?.nameAr ?? "—"}</span>
                     </td>
-                    <td className="px-4 py-3 font-bold text-[#C9A84C]">{formatPrice(p.price)}</td>
+                    <td className="px-4 py-3 font-bold text-[#C9A84C]">{formatPrice(p.price, locale)}</td>
                     <td className="px-4 py-3">
                       <span className={`font-medium ${p.stock < 5 ? "text-red-600" : "text-gray-700"}`}>
                         {p.stock}
@@ -367,14 +372,16 @@ export default function AdminProductsPage() {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500">{products?.total} منتج</span>
+            <span className="text-xs text-gray-500">
+              {t("shop.results_count", { count: products?.total ?? 0 })}
+            </span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                السابق
+                {t("shop.prev")}
               </Button>
               <span className="flex items-center text-xs text-gray-500 px-2">{page}/{totalPages}</span>
               <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                التالي
+                {t("shop.next")}
               </Button>
             </div>
           </div>
@@ -391,7 +398,9 @@ export default function AdminProductsPage() {
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteProduct.mutate({ id: deleteId })}
-        title="هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء."
+        title={locale === "ar"
+          ? "هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء."
+          : "Are you sure you want to delete this product? This action cannot be undone."}
         isPending={deleteProduct.isPending}
       />
     </div>

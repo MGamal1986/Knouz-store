@@ -6,19 +6,34 @@ import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@workspace/api-client-react";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice } from "@/lib/formatters";
 
 interface ProductCardProps {
   product: Product;
 }
 
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(p) + " جنيه";
-
 export default function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const { toggle, isInWishlist } = useWishlistStore();
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const wished = isInWishlist(product.id);
+
+  const displayName =
+    locale === "en" && (product as any).nameEn
+      ? (product as any).nameEn
+      : product.nameAr;
+
+  const hasDiscount =
+    product.comparePrice && product.comparePrice > product.price;
+  const discountPct = hasDiscount
+    ? Math.round(
+        (1 - product.price / (product.comparePrice as number)) * 100
+      )
+    : 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -30,21 +45,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       quantity: 1,
       stock: product.stock,
     });
-    toast({ title: "تمت الإضافة إلى السلة ✓" });
+    toast({ title: t("product.added_to_cart") });
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     toggle(product.id);
   };
-
-  const hasDiscount =
-    product.comparePrice && product.comparePrice > product.price;
-  const discountPct = hasDiscount
-    ? Math.round(
-        (1 - product.price / (product.comparePrice as number)) * 100
-      )
-    : 0;
 
   return (
     <Link href={`/product/${product.id}`}>
@@ -53,7 +60,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.images?.[0] ? (
             <img
               src={product.images[0]}
-              alt={product.nameAr}
+              alt={displayName}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
@@ -63,7 +70,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
           {hasDiscount && (
             <Badge className="absolute top-2 start-2 bg-secondary text-secondary-foreground text-xs">
-              خصم {discountPct}%
+              {t("product.discount", { pct: discountPct })}
             </Badge>
           )}
           <button
@@ -79,7 +86,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         <div className="p-3 flex flex-col gap-2 flex-1">
           <p className="font-semibold text-foreground line-clamp-2 text-sm leading-snug">
-            {product.nameAr}
+            {displayName}
           </p>
 
           {product.avgRating && product.avgRating > 0 ? (
@@ -93,10 +100,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           <div className="mt-auto flex items-end justify-between gap-2">
             <div>
-              <p className="font-bold text-primary">{formatPrice(product.price)}</p>
+              <p className="font-bold text-primary">{formatPrice(product.price, locale)}</p>
               {hasDiscount && (
                 <p className="text-xs text-muted-foreground line-through">
-                  {formatPrice(product.comparePrice as number)}
+                  {formatPrice(product.comparePrice as number, locale)}
                 </p>
               )}
             </div>

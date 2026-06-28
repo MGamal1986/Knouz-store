@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect } from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { LocaleProvider } from "@/contexts/LocaleContext";
 
 import Layout from "@/components/Layout";
 import HomePage from "@/pages/home";
@@ -37,11 +38,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
-      {/* Admin routes — own layout, no storefront header/footer */}
       <Route path="/admin" component={AdminPage} />
       <Route path="/admin/:rest*" component={AdminPage} />
 
-      {/* Storefront routes */}
       <Route>
         <Layout>
           <Switch>
@@ -62,18 +61,20 @@ function Router() {
 
 function App() {
   return (
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
+    <LocaleProvider>
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ClerkProvider>
+    </LocaleProvider>
   );
 }
 

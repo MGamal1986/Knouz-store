@@ -7,11 +7,13 @@ import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cart";
 import { useToast } from "@/hooks/use-toast";
 import { useValidateCoupon } from "@workspace/api-client-react";
-
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(Math.round(p)) + " جنيه";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice } from "@/lib/formatters";
 
 export default function CartPage() {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const {
     items,
     removeItem,
@@ -34,10 +36,10 @@ export default function CartPage() {
           discountAmount: data.discountAmount,
           type: data.type as "PERCENTAGE" | "FIXED",
         });
-        toast({ title: `✓ تم تطبيق الكود: ${couponCode}` });
+        toast({ title: t("cart.coupon_success", { code: couponCode }) });
       },
       onError: () =>
-        toast({ title: "كود غير صالح أو منتهي الصلاحية", variant: "destructive" }),
+        toast({ title: t("cart.coupon_invalid"), variant: "destructive" }),
     },
   });
 
@@ -45,10 +47,10 @@ export default function CartPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
         <ShoppingCart size={64} strokeWidth={1} className="mx-auto text-muted-foreground" />
-        <h1 className="text-2xl font-bold">سلتك فارغة</h1>
-        <p className="text-muted-foreground">ابدأ التسوق لإضافة منتجات</p>
+        <h1 className="text-2xl font-bold">{t("cart.empty")}</h1>
+        <p className="text-muted-foreground">{t("cart.start_shopping")}</p>
         <Link href="/shop">
-          <Button>تسوق الآن</Button>
+          <Button>{t("cart.empty_cta")}</Button>
         </Link>
       </div>
     );
@@ -56,7 +58,7 @@ export default function CartPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-extrabold mb-8">سلة التسوق ({itemTotal})</h1>
+      <h1 className="text-3xl font-extrabold mb-8">{t("cart.title")} ({itemTotal})</h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-3">
@@ -78,7 +80,7 @@ export default function CartPage() {
                     {item.nameAr}
                   </p>
                 </Link>
-                <p className="text-primary font-bold mt-1">{formatPrice(item.price)}</p>
+                <p className="text-primary font-bold mt-1">{formatPrice(item.price, locale)}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <button
                     onClick={() =>
@@ -114,7 +116,7 @@ export default function CartPage() {
                   <X size={16} />
                 </button>
                 <p className="font-bold text-sm">
-                  {formatPrice(item.price * item.quantity)}
+                  {formatPrice(item.price * item.quantity, locale)}
                 </p>
               </div>
             </div>
@@ -123,11 +125,11 @@ export default function CartPage() {
 
         <div className="space-y-4">
           <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-            <h2 className="font-bold text-lg">ملخص الطلب</h2>
+            <h2 className="font-bold text-lg">{t("cart.order_summary")}</h2>
 
             <div className="flex gap-2">
               <Input
-                placeholder="كود الخصم"
+                placeholder={t("cart.coupon_placeholder")}
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                 className="text-start"
@@ -158,31 +160,31 @@ export default function CartPage() {
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">المجموع الفرعي</span>
-                <span>{formatPrice(subtotal)}</span>
+                <span className="text-muted-foreground">{t("cart.subtotal")}</span>
+                <span>{formatPrice(subtotal, locale)}</span>
               </div>
               {coupon && discount > 0 && (
                 <div className="flex justify-between text-green-600">
-                  <span>خصم ({coupon.code})</span>
-                  <span>− {formatPrice(discount)}</span>
+                  <span>{t("cart.discount")} ({coupon.code})</span>
+                  <span>− {formatPrice(discount, locale)}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">الشحن</span>
-                <span className="text-green-600">مجاني</span>
+                <span className="text-muted-foreground">{t("cart.shipping")}</span>
+                <span className="text-green-600">{t("cart.free_shipping")}</span>
               </div>
             </div>
 
             <Separator />
 
             <div className="flex justify-between font-bold text-lg">
-              <span>الإجمالي</span>
-              <span className="text-primary">{formatPrice(total)}</span>
+              <span>{t("cart.total")}</span>
+              <span className="text-primary">{formatPrice(total, locale)}</span>
             </div>
 
             <Link href="/checkout">
               <Button className="w-full gap-2">
-                إتمام الشراء
+                {t("cart.checkout")}
                 <ArrowRight size={16} />
               </Button>
             </Link>

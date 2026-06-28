@@ -1,0 +1,550 @@
+Add complete bilingual support (Arabic and English) to the existing كنوز (Knouz) e-commerce project. The website must support both languages with a toggle switcher. Do not break any existing functionality.
+
+---
+
+I18N LIBRARY
+
+Use next-intl for internationalization:
+- Run: npm install next-intl
+- Supported locales: ar (default), en
+- Default locale: ar
+- URL structure: /ar/... and /en/...
+- Root / redirects to /ar automatically
+
+---
+
+FILE STRUCTURE
+
+Create this translation file structure:
+
+messages/
+├── ar.json
+└── en.json
+
+Create next.config.js with next-intl plugin:
+import createNextIntlPlugin from 'next-intl/plugin'
+const withNextIntl = createNextIntlPlugin()
+export default withNextIntl({ ... existing config ... })
+
+Create i18n.ts at root:
+import { getRequestConfig } from 'next-intl/server'
+export default getRequestConfig(async ({ locale }) => ({
+  messages: (await import(`./messages/${locale}.json`)).default
+}))
+
+Update middleware.ts to handle locale routing alongside existing admin protection:
+- Use createMiddleware from next-intl/middleware
+- Locales: ['ar', 'en']
+- defaultLocale: 'ar'
+- Preserve admin role protection for /[locale]/admin routes
+
+Move all pages inside app/[locale]/ folder:
+app/
+└── [locale]/
+    ├── layout.tsx        ← set dir and lang from locale
+    ├── page.tsx
+    ├── shop/page.tsx
+    ├── product/[slug]/page.tsx
+    ├── cart/page.tsx
+    ├── checkout/page.tsx
+    ├── track/page.tsx
+    ├── login/page.tsx
+    ├── register/page.tsx
+    ├── account/page.tsx
+    └── admin/
+        ├── layout.tsx
+        ├── page.tsx
+        ├── products/page.tsx
+        ├── orders/page.tsx
+        ├── customers/page.tsx
+        ├── coupons/page.tsx
+        ├── categories/page.tsx
+        └── settings/page.tsx
+
+In app/[locale]/layout.tsx:
+- Read locale param
+- Set <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+- Wrap with NextIntlClientProvider passing messages
+
+---
+
+TRANSLATION FILES
+
+Create messages/ar.json with ALL of these keys:
+
+{
+  "nav": {
+    "home": "الرئيسية",
+    "shop": "المتجر",
+    "cart": "السلة",
+    "account": "حسابي",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "register": "إنشاء حساب"
+  },
+  "home": {
+    "hero_title": "اكتشفي كنوز الأناقة",
+    "hero_subtitle": "مجوهرات، إكسسوارات، وعناية بالبشرة مختارة بعناية لكِ",
+    "hero_cta": "تسوقي الآن",
+    "featured_title": "منتجات مميزة",
+    "categories_title": "تسوقي حسب الفئة",
+    "trust_shipping": "شحن سريع",
+    "trust_payment": "دفع آمن",
+    "trust_returns": "إرجاع مجاني خلال 14 يوم",
+    "testimonials_title": "ماذا تقول عملاؤنا"
+  },
+  "shop": {
+    "title": "المتجر",
+    "filter_category": "الفئة",
+    "filter_price": "نطاق السعر",
+    "filter_rating": "التقييم",
+    "sort_newest": "الأحدث",
+    "sort_bestselling": "الأعلى مبيعاً",
+    "sort_price_asc": "السعر: من الأقل",
+    "sort_price_desc": "السعر: من الأعلى",
+    "no_results": "لا توجد منتجات",
+    "results_count": "{count} منتج"
+  },
+  "product": {
+    "add_to_cart": "أضف للسلة",
+    "add_to_wishlist": "أضف للمفضلة",
+    "in_stock": "متوفر",
+    "out_of_stock": "غير متوفر",
+    "low_stock": "كميات محدودة",
+    "description": "الوصف",
+    "reviews": "التقييمات",
+    "related": "منتجات مشابهة",
+    "quantity": "الكمية",
+    "sku": "الرمز",
+    "share": "مشاركة"
+  },
+  "cart": {
+    "title": "سلة المشتريات",
+    "empty": "سلتك فارغة",
+    "empty_cta": "ابدئي التسوق",
+    "subtotal": "المجموع الفرعي",
+    "shipping": "الشحن",
+    "discount": "الخصم",
+    "total": "الإجمالي",
+    "coupon_placeholder": "كود الخصم",
+    "coupon_apply": "تطبيق",
+    "coupon_invalid": "كود غير صالح",
+    "coupon_success": "تم تطبيق الخصم",
+    "checkout": "إتمام الطلب",
+    "free_shipping": "شحن مجاني",
+    "remove": "حذف"
+  },
+  "checkout": {
+    "title": "إتمام الطلب",
+    "step_shipping": "بيانات الشحن",
+    "step_payment": "الدفع",
+    "step_confirmation": "تأكيد الطلب",
+    "name": "الاسم الكامل",
+    "phone": "رقم الهاتف",
+    "governorate": "المحافظة",
+    "city": "المدينة",
+    "street": "العنوان التفصيلي",
+    "payment_card": "بطاقة ائتمانية",
+    "payment_fawry": "فوري",
+    "payment_wallet": "محفظة إلكترونية",
+    "place_order": "تأكيد الطلب",
+    "back": "رجوع",
+    "next": "التالي",
+    "thank_you": "شكراً لطلبك!",
+    "order_number": "رقم الطلب",
+    "confirmation_msg": "سيتم التواصل معكِ خلال 24 ساعة لتأكيد الطلب"
+  },
+  "auth": {
+    "login_title": "تسجيل الدخول",
+    "register_title": "إنشاء حساب جديد",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirm_password": "تأكيد كلمة المرور",
+    "name": "الاسم الكامل",
+    "phone": "رقم الهاتف",
+    "login_btn": "دخول",
+    "register_btn": "إنشاء حساب",
+    "have_account": "لديك حساب بالفعل؟",
+    "no_account": "ليس لديك حساب؟",
+    "forgot_password": "نسيت كلمة المرور؟"
+  },
+  "account": {
+    "title": "حسابي",
+    "orders": "طلباتي",
+    "addresses": "عناوين الشحن",
+    "wishlist": "المفضلة",
+    "no_orders": "لا توجد طلبات بعد",
+    "order_number": "رقم الطلب",
+    "order_date": "تاريخ الطلب",
+    "order_status": "الحالة",
+    "order_total": "الإجمالي"
+  },
+  "track": {
+    "title": "تتبع الطلب",
+    "order_number": "رقم الطلب",
+    "phone": "رقم الهاتف",
+    "track_btn": "تتبع",
+    "not_found": "لم يتم العثور على الطلب",
+    "status_pending": "قيد المعالجة",
+    "status_processing": "جاري التجهيز",
+    "status_shipped": "تم الشحن",
+    "status_delivered": "تم التسليم",
+    "status_cancelled": "ملغي"
+  },
+  "admin": {
+    "dashboard": "لوحة التحكم",
+    "products": "المنتجات",
+    "orders": "الطلبات",
+    "customers": "العملاء",
+    "coupons": "الكوبونات",
+    "categories": "الفئات",
+    "settings": "الإعدادات",
+    "total_revenue": "إجمالي الإيرادات",
+    "total_orders": "إجمالي الطلبات",
+    "today_orders": "طلبات اليوم",
+    "total_customers": "العملاء",
+    "add_product": "إضافة منتج",
+    "edit_product": "تعديل المنتج",
+    "delete_product": "حذف المنتج",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "confirm_delete": "هل أنت متأكد؟",
+    "export_csv": "تصدير CSV",
+    "search": "بحث...",
+    "no_results": "لا توجد نتائج",
+    "loading": "جاري التحميل..."
+  },
+  "common": {
+    "currency": "جنيه",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
+    "save_success": "تم الحفظ بنجاح",
+    "delete_success": "تم الحذف بنجاح",
+    "whatsapp": "تواصل عبر واتساب"
+  }
+}
+
+Create messages/en.json with the exact same keys in English:
+
+{
+  "nav": {
+    "home": "Home",
+    "shop": "Shop",
+    "cart": "Cart",
+    "account": "My Account",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register"
+  },
+  "home": {
+    "hero_title": "Discover Knouz Elegance",
+    "hero_subtitle": "Carefully curated jewelry, accessories, and skincare just for you",
+    "hero_cta": "Shop Now",
+    "featured_title": "Featured Products",
+    "categories_title": "Shop by Category",
+    "trust_shipping": "Fast Delivery",
+    "trust_payment": "Secure Payment",
+    "trust_returns": "Free Returns within 14 Days",
+    "testimonials_title": "What Our Customers Say"
+  },
+  "shop": {
+    "title": "Shop",
+    "filter_category": "Category",
+    "filter_price": "Price Range",
+    "filter_rating": "Rating",
+    "sort_newest": "Newest",
+    "sort_bestselling": "Best Selling",
+    "sort_price_asc": "Price: Low to High",
+    "sort_price_desc": "Price: High to Low",
+    "no_results": "No products found",
+    "results_count": "{count} products"
+  },
+  "product": {
+    "add_to_cart": "Add to Cart",
+    "add_to_wishlist": "Add to Wishlist",
+    "in_stock": "In Stock",
+    "out_of_stock": "Out of Stock",
+    "low_stock": "Limited Stock",
+    "description": "Description",
+    "reviews": "Reviews",
+    "related": "Related Products",
+    "quantity": "Quantity",
+    "sku": "SKU",
+    "share": "Share"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "empty_cta": "Start Shopping",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "discount": "Discount",
+    "total": "Total",
+    "coupon_placeholder": "Coupon code",
+    "coupon_apply": "Apply",
+    "coupon_invalid": "Invalid coupon code",
+    "coupon_success": "Discount applied",
+    "checkout": "Proceed to Checkout",
+    "free_shipping": "Free Shipping",
+    "remove": "Remove"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "step_shipping": "Shipping Info",
+    "step_payment": "Payment",
+    "step_confirmation": "Order Confirmation",
+    "name": "Full Name",
+    "phone": "Phone Number",
+    "governorate": "Governorate",
+    "city": "City",
+    "street": "Street Address",
+    "payment_card": "Credit Card",
+    "payment_fawry": "Fawry",
+    "payment_wallet": "Mobile Wallet",
+    "place_order": "Place Order",
+    "back": "Back",
+    "next": "Next",
+    "thank_you": "Thank You for Your Order!",
+    "order_number": "Order Number",
+    "confirmation_msg": "We will contact you within 24 hours to confirm your order"
+  },
+  "auth": {
+    "login_title": "Login",
+    "register_title": "Create New Account",
+    "email": "Email Address",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "name": "Full Name",
+    "phone": "Phone Number",
+    "login_btn": "Login",
+    "register_btn": "Create Account",
+    "have_account": "Already have an account?",
+    "no_account": "Don't have an account?",
+    "forgot_password": "Forgot password?"
+  },
+  "account": {
+    "title": "My Account",
+    "orders": "My Orders",
+    "addresses": "Shipping Addresses",
+    "wishlist": "Wishlist",
+    "no_orders": "No orders yet",
+    "order_number": "Order Number",
+    "order_date": "Order Date",
+    "order_status": "Status",
+    "order_total": "Total"
+  },
+  "track": {
+    "title": "Track Your Order",
+    "order_number": "Order Number",
+    "phone": "Phone Number",
+    "track_btn": "Track",
+    "not_found": "Order not found",
+    "status_pending": "Pending",
+    "status_processing": "Processing",
+    "status_shipped": "Shipped",
+    "status_delivered": "Delivered",
+    "status_cancelled": "Cancelled"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "orders": "Orders",
+    "customers": "Customers",
+    "coupons": "Coupons",
+    "categories": "Categories",
+    "settings": "Settings",
+    "total_revenue": "Total Revenue",
+    "total_orders": "Total Orders",
+    "today_orders": "Today's Orders",
+    "total_customers": "Customers",
+    "add_product": "Add Product",
+    "edit_product": "Edit Product",
+    "delete_product": "Delete Product",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm_delete": "Are you sure?",
+    "export_csv": "Export CSV",
+    "search": "Search...",
+    "no_results": "No results found",
+    "loading": "Loading..."
+  },
+  "common": {
+    "currency": "EGP",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "save_success": "Saved successfully",
+    "delete_success": "Deleted successfully",
+    "whatsapp": "Chat on WhatsApp"
+  }
+}
+
+---
+
+LANGUAGE SWITCHER COMPONENT
+
+Create components/LanguageSwitcher.tsx:
+- Shows two options: عربي | EN
+- Active language is bold and gold colored
+- On click, navigates to same page in the other locale using useRouter and usePathname from next-intl
+- Place this component in the Header next to the cart icon
+- Also place it in the admin sidebar header
+
+Logic:
+- Get current pathname using usePathname()
+- Get current locale using useLocale()
+- On switch: replace /ar/ with /en/ or vice versa in the path and router.push()
+
+---
+
+LAYOUT DIRECTION
+
+In app/[locale]/layout.tsx:
+
+const isRTL = locale === 'ar'
+
+<html lang={locale} dir={isRTL ? 'rtl' : 'ltr'}>
+
+Tailwind RTL handling:
+- Install @tailwindcss/rtl plugin OR use Tailwind v3.3+ built-in RTL variant
+- Use the rtl: and ltr: Tailwind variants on any directional classes
+- Example: className="rtl:mr-4 ltr:ml-4"
+- Fix all layout components to use these variants instead of hardcoded ml-/mr-
+
+---
+
+PRODUCT DATA — BILINGUAL
+
+Update the Product model in Prisma schema to support both languages:
+
+model Product {
+  ...existing fields...
+  nameEn        String?
+  descriptionEn String?
+}
+
+model Category {
+  ...existing fields...
+  nameEn String?
+}
+
+Update admin product form to include English name and description fields (optional):
+- اسم المنتج (عربي) — required
+- Product Name (English) — optional
+- الوصف (عربي) — required  
+- Description (English) — optional
+
+In product display pages, show the correct language based on current locale:
+const name = locale === 'ar' ? product.nameAr : (product.nameEn || product.nameAr)
+const description = locale === 'ar' ? product.descriptionAr : (product.descriptionEn || product.descriptionAr)
+
+Fallback to Arabic if English translation is not provided.
+
+---
+
+USING TRANSLATIONS IN COMPONENTS
+
+In every page and component, replace all hardcoded Arabic strings with translation calls:
+
+import { useTranslations } from 'next-intl'
+
+export default function Header() {
+  const t = useTranslations('nav')
+  return (
+    <nav>
+      <a href="/">{t('home')}</a>
+      <a href="/shop">{t('shop')}</a>
+    </nav>
+  )
+}
+
+For server components use getTranslations:
+import { getTranslations } from 'next-intl/server'
+
+export default async function Page() {
+  const t = await getTranslations('home')
+  return <h1>{t('hero_title')}</h1>
+}
+
+---
+
+FONT HANDLING PER LOCALE
+
+In app/[locale]/layout.tsx:
+- Arabic locale: load Cairo font from Google Fonts
+- English locale: load Inter font from Google Fonts
+
+import { Cairo, Inter } from 'next/font/google'
+const cairo = Cairo({ subsets: ['arabic'], variable: '--font-cairo' })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+
+Apply the correct font class to <body> based on locale.
+
+---
+
+NUMBER AND CURRENCY FORMATTING
+
+Create lib/formatters.ts:
+
+export function formatPrice(amount: number, locale: string): string {
+  if (locale === 'ar') {
+    return `${amount.toLocaleString('ar-EG')} جنيه`
+  }
+  return `EGP ${amount.toLocaleString('en-US')}`
+}
+
+export function formatDate(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+Use these helpers everywhere prices and dates are displayed.
+
+---
+
+ADMIN DASHBOARD LANGUAGE
+
+The admin dashboard should also be bilingual using the same next-intl setup. Admin users can switch language using the same LanguageSwitcher in the sidebar. All admin labels, buttons, table headers, and messages must use the admin translation keys from both ar.json and en.json.
+
+---
+
+SEO PER LOCALE
+
+In each page, add generateMetadata that returns Arabic or English metadata based on locale:
+
+export async function generateMetadata({ params: { locale } }) {
+  return {
+    title: locale === 'ar' ? 'كنوز - تسوق الآن' : 'Knouz - Shop Now',
+    description: locale === 'ar'
+      ? 'اكتشفي مجوهرات وإكسسوارات وعناية بالبشرة مختارة بعناية'
+      : 'Discover carefully curated jewelry, accessories, and skincare',
+    openGraph: {
+      locale: locale === 'ar' ? 'ar_EG' : 'en_US',
+    }
+  }
+}
+
+Add hreflang alternate links in the root layout:
+<link rel="alternate" hrefLang="ar" href="https://knouz.com/ar" />
+<link rel="alternate" hrefLang="en" href="https://knouz.com/en" />
+
+---
+
+FINAL INSTRUCTIONS
+
+1. Install next-intl first: npm install next-intl
+2. Create both messages/ar.json and messages/en.json with all keys above
+3. Move all pages into app/[locale]/ structure
+4. Update middleware.ts to combine next-intl locale routing with existing admin role protection
+5. Update layout.tsx to set correct dir and lang attributes
+6. Replace every hardcoded string in every component with t() calls
+7. Add LanguageSwitcher to Header and admin sidebar
+8. Update Prisma schema to add nameEn and descriptionEn to Product and Category
+9. Update admin product form to include optional English fields
+10. Apply rtl:/ltr: Tailwind variants to all directional CSS
+11. Test that switching language on any page stays on the same page in the new locale
+12. Ensure Arabic is always the default — visiting / redirects to /ar/

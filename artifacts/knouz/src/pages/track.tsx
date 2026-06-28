@@ -5,24 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getTrackOrderQueryOptions } from "@workspace/api-client-react";
-
-const STATUS_MAP: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  PENDING: { label: "قيد الانتظار", icon: <Clock size={20} />, color: "text-yellow-500" },
-  CONFIRMED: { label: "مؤكد", icon: <CheckCircle size={20} />, color: "text-blue-500" },
-  SHIPPED: { label: "تم الشحن", icon: <Truck size={20} />, color: "text-purple-500" },
-  DELIVERED: { label: "تم التسليم", icon: <CheckCircle size={20} />, color: "text-green-600" },
-  CANCELLED: { label: "ملغي", icon: <XCircle size={20} />, color: "text-destructive" },
-};
-
-const STATUS_STEPS = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"];
-
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(p) + " جنيه";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice, formatDate } from "@/lib/formatters";
 
 export default function TrackPage() {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const [orderNumber, setOrderNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  const STATUS_MAP: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+    PENDING: { label: t("track.status_pending"), icon: <Clock size={20} />, color: "text-yellow-500" },
+    CONFIRMED: { label: t("track.status_confirmed"), icon: <CheckCircle size={20} />, color: "text-blue-500" },
+    SHIPPED: { label: t("track.status_shipped"), icon: <Truck size={20} />, color: "text-purple-500" },
+    DELIVERED: { label: t("track.status_delivered"), icon: <CheckCircle size={20} />, color: "text-green-600" },
+    CANCELLED: { label: t("track.status_cancelled"), icon: <XCircle size={20} />, color: "text-destructive" },
+  };
+
+  const STATUS_STEPS = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"];
 
   const { data: order, isLoading, error } = useQuery({
     ...getTrackOrderQueryOptions({ orderNumber, phone }),
@@ -40,13 +42,13 @@ export default function TrackPage() {
     <div className="max-w-2xl mx-auto px-4 py-12">
       <div className="text-center mb-8">
         <Package size={48} className="mx-auto text-primary mb-3" strokeWidth={1.5} />
-        <h1 className="text-3xl font-extrabold mb-2">تتبع طلبك</h1>
-        <p className="text-muted-foreground">أدخل رقم الطلب ورقم الهاتف لمتابعة حالة طلبك</p>
+        <h1 className="text-3xl font-extrabold mb-2">{t("track.title")}</h1>
+        <p className="text-muted-foreground">{t("track.subtitle")}</p>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6 space-y-4 mb-6">
         <div className="space-y-1.5">
-          <Label>رقم الطلب</Label>
+          <Label>{t("track.order_number")}</Label>
           <Input
             placeholder="KNZ-XXXXXXXX"
             value={orderNumber}
@@ -58,7 +60,7 @@ export default function TrackPage() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label>رقم الهاتف</Label>
+          <Label>{t("track.phone")}</Label>
           <Input
             placeholder="01xxxxxxxxx"
             value={phone}
@@ -75,13 +77,13 @@ export default function TrackPage() {
           disabled={!orderNumber || !phone || isLoading}
         >
           <Search size={16} />
-          {isLoading ? "جاري البحث..." : "تتبع الطلب"}
+          {isLoading ? t("track.searching") : t("track.track_btn")}
         </Button>
       </div>
 
       {submitted && error && (
         <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-center">
-          لم يتم العثور على طلب بهذه البيانات
+          {t("track.not_found")}
         </div>
       )}
 
@@ -89,7 +91,7 @@ export default function TrackPage() {
         <div className="bg-card border border-border rounded-xl p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">رقم الطلب</p>
+              <p className="text-sm text-muted-foreground">{t("track.order_number")}</p>
               <p className="font-bold font-mono">{order.orderNumber}</p>
             </div>
             <div className={`flex items-center gap-2 font-semibold ${statusInfo.color}`}>
@@ -134,18 +136,18 @@ export default function TrackPage() {
 
           <div className="border-t border-border pt-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">تاريخ الطلب</span>
+              <span className="text-muted-foreground">{t("track.order_date")}</span>
               <span>
-                {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-EG") : ""}
+                {order.createdAt ? formatDate(order.createdAt, locale) : ""}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">الإجمالي</span>
-              <span className="font-bold text-primary">{formatPrice(order.total)}</span>
+              <span className="text-muted-foreground">{t("track.order_total")}</span>
+              <span className="font-bold text-primary">{formatPrice(order.total, locale)}</span>
             </div>
             {order.shippingAddress && typeof order.shippingAddress === "object" && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">عنوان الشحن</span>
+                <span className="text-muted-foreground">{t("track.shipping_address")}</span>
                 <span className="text-end max-w-xs">
                   {(order.shippingAddress as Record<string, string>).address},{" "}
                   {(order.shippingAddress as Record<string, string>).city}

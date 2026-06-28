@@ -8,21 +8,23 @@ import { Separator } from "@/components/ui/separator";
 import { getListOrdersQueryOptions } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import type { Order } from "@workspace/api-client-react";
-
-const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  PENDING: { label: "قيد الانتظار", variant: "secondary" },
-  CONFIRMED: { label: "مؤكد", variant: "default" },
-  SHIPPED: { label: "تم الشحن", variant: "default" },
-  DELIVERED: { label: "تم التسليم", variant: "default" },
-  CANCELLED: { label: "ملغي", variant: "destructive" },
-};
-
-const formatPrice = (p: number) =>
-  new Intl.NumberFormat("ar-EG").format(p) + " جنيه";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/contexts/LocaleContext";
+import { formatPrice, formatDate } from "@/lib/formatters";
 
 export default function AccountPage() {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
+
+  const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    PENDING: { label: t("status.PENDING"), variant: "secondary" },
+    CONFIRMED: { label: t("status.CONFIRMED"), variant: "default" },
+    SHIPPED: { label: t("status.SHIPPED"), variant: "default" },
+    DELIVERED: { label: t("status.DELIVERED"), variant: "default" },
+    CANCELLED: { label: t("status.CANCELLED"), variant: "destructive" },
+  };
 
   const { data: ordersData, isLoading } = useQuery({
     ...getListOrdersQueryOptions({ userId: userId ?? undefined }),
@@ -33,12 +35,12 @@ export default function AccountPage() {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <LogIn size={48} className="mx-auto text-muted-foreground" strokeWidth={1} />
-        <h1 className="text-2xl font-bold">حسابي</h1>
-        <p className="text-muted-foreground">سجل دخولك لعرض طلباتك وإدارة حسابك</p>
+        <h1 className="text-2xl font-bold">{t("account.title")}</h1>
+        <p className="text-muted-foreground">{t("account.login_prompt")}</p>
         <SignInButton mode="modal">
           <Button className="gap-2">
             <LogIn size={16} />
-            تسجيل الدخول
+            {t("account.login_btn")}
           </Button>
         </SignInButton>
       </div>
@@ -48,7 +50,7 @@ export default function AccountPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-extrabold">حسابي</h1>
+        <h1 className="text-3xl font-extrabold">{t("account.title")}</h1>
         <UserButton appearance={{ elements: { avatarBox: "w-10 h-10" } }} />
       </div>
 
@@ -61,7 +63,7 @@ export default function AccountPage() {
           />
         )}
         <div>
-          <p className="font-bold text-lg">{user?.fullName ?? "مستخدم"}</p>
+          <p className="font-bold text-lg">{user?.fullName ?? (locale === "ar" ? "مستخدم" : "User")}</p>
           <p className="text-muted-foreground text-sm">
             {user?.primaryEmailAddress?.emailAddress}
           </p>
@@ -71,7 +73,7 @@ export default function AccountPage() {
       <div>
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Package size={20} />
-          طلباتي ({ordersData?.orders?.length ?? 0})
+          {t("account.orders")} ({ordersData?.orders?.length ?? 0})
         </h2>
 
         {isLoading ? (
@@ -83,9 +85,9 @@ export default function AccountPage() {
         ) : ordersData?.orders?.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Package size={40} strokeWidth={1} className="mx-auto mb-3" />
-            <p>لا توجد طلبات بعد</p>
+            <p>{t("account.no_orders")}</p>
             <Link href="/shop">
-              <Button className="mt-3" variant="outline">ابدأ التسوق</Button>
+              <Button className="mt-3" variant="outline">{t("account.start_shopping")}</Button>
             </Link>
           </div>
         ) : (
@@ -98,7 +100,7 @@ export default function AccountPage() {
                     <div className="space-y-1">
                       <p className="font-bold font-mono text-sm">{order.orderNumber ?? order.id.slice(0, 8)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-EG") : ""}
+                        {order.createdAt ? formatDate(order.createdAt, locale) : ""}
                       </p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {(order.items ?? []).slice(0, 3).map((item) => (
@@ -115,14 +117,14 @@ export default function AccountPage() {
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-                      <p className="font-bold text-primary text-sm">{formatPrice(order.total)}</p>
+                      <p className="font-bold text-primary text-sm">{formatPrice(order.total, locale)}</p>
                     </div>
                   </div>
                   <Separator className="my-3" />
                   <div className="flex justify-end">
                     <Link href={`/track?orderNumber=${order.orderNumber ?? ""}`}>
                       <Button variant="ghost" size="sm" className="gap-1 text-xs">
-                        تتبع الطلب
+                        {t("account.track_order")}
                         <ChevronLeft size={12} />
                       </Button>
                     </Link>
